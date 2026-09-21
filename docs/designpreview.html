@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sextant — sketch UI kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --paper:#fbf7ef;
+  --grid:rgba(96,130,170,.20);
+  --grid-strong:rgba(96,130,170,.34);
+  --margin-rule:#dd8aa6;
+  --ink:#2f3142;
+  --ink-soft:#6a6c80;
+  --violet:#6b5bb5;
+  --violet-deep:#3b2f6e;
+  --sea:#4a8f6d;
+  --sand:#dcb845;
+  --pink:#cf5f92;
+  --sun:#e8a33d;
+  --danger:#c0442f;
+  --pressed:rgba(107,91,181,.14);
+  --sheet:rgba(255,255,255,.55);
+  --pencil-blend:multiply;
+}
+:root:not([data-theme="light"]){
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#151a2b;
+    --grid:rgba(150,180,220,.12);
+    --grid-strong:rgba(150,180,220,.22);
+    --margin-rule:#a8567a;
+    --ink:#e8e6f2;
+    --ink-soft:#a0a2bb;
+    --violet:#a897ee;
+    --violet-deep:#241c47;
+    --sea:#6fbb92;
+    --sand:#e3c463;
+    --pink:#f08bb6;
+    --sun:#f0b45c;
+    --danger:#f08066;
+    --pressed:rgba(168,151,238,.20);
+    --sheet:rgba(255,255,255,.05);
+    --pencil-blend:screen;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#151a2b;
+  --grid:rgba(150,180,220,.12);
+  --grid-strong:rgba(150,180,220,.22);
+  --margin-rule:#a8567a;
+  --ink:#e8e6f2;
+  --ink-soft:#a0a2bb;
+  --violet:#a897ee;
+  --violet-deep:#241c47;
+  --sea:#6fbb92;
+  --sand:#e3c463;
+  --pink:#f08bb6;
+  --sun:#f0b45c;
+  --danger:#f08066;
+  --pressed:rgba(168,151,238,.20);
+  --sheet:rgba(255,255,255,.05);
+  --pencil-blend:screen;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;
+  color:var(--ink);
+  font-family:'Patrick Hand','Comic Sans MS',cursive;
+  font-size:19px;
+  line-height:1.6;
+}
+img{max-width:100%}
+
+/* left margin rule, like the reference sheet */
+.sheet{
+  position:relative;
+  max-width:1060px;
+  margin:0 auto;
+  padding:48px 24px 96px 30px;
+}
+@media (min-width:760px){
+  .sheet{padding-left:92px}
+  .sheet::before{
+    content:"";position:absolute;top:0;bottom:0;left:64px;width:2px;
+    background:var(--margin-rule);opacity:.7;
+  }
+}
+
+/* ---------- sketchy outline system ---------- */
+/* borders live on a pseudo element so the wobble filter never touches text */
+.sk{position:relative;background:transparent}
+.sk::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  border:2px solid var(--ink);
+  border-radius:225px 14px 255px 12px/14px 250px 12px 230px;
+  filter:url(#wob1);
+}
+.sk.v2::before{border-radius:12px 240px 14px 255px/230px 12px 245px 14px;filter:url(#wob2)}
+.sk.v3::before{border-radius:255px 18px 200px 20px/20px 210px 16px 255px;filter:url(#wob3)}
+.sk.ghost::before{border-style:dashed;opacity:.75}
+.sk.thin::before{border-width:1.5px;opacity:.55}
+
+h1,h2,h3{font-family:'Caveat','Segoe Script',cursive;font-weight:700;line-height:1.1;margin:0}
+h1{font-size:clamp(2.6rem,7vw,4.1rem);letter-spacing:.5px}
+h2{font-size:clamp(1.9rem,4.4vw,2.6rem);margin-bottom:4px}
+h3{font-size:1.5rem;font-family:'Patrick Hand',cursive;font-weight:400}
+p{margin:.35em 0 .9em;max-width:62ch;color:var(--ink-soft)}
+
+.masthead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px 28px;margin-bottom:8px}
+.masthead p{margin:0;flex:1 1 280px;min-width:220px}
+.stamp{
+  font-family:'Caveat',cursive;font-size:1.15rem;color:var(--pink);
+  transform:rotate(-4deg);padding:6px 14px;white-space:nowrap;
+}
+
+/* squiggle underline under section titles */
+.rule{display:block;width:min(340px,80%);height:12px;overflow:visible;color:var(--pink);margin:2px 0 22px}
+
+section{margin-top:64px}
+.lede{margin-bottom:26px}
+
+/* the pink margin callout, straight from the sketch */
+.note{
+  font-family:'Caveat',cursive;font-size:1.28rem;color:var(--pink);
+  line-height:1.25;display:flex;gap:8px;align-items:flex-start;margin:14px 0;
+}
+.note::before{content:"→";font-size:1.1em;line-height:1;transform:translateY(2px)}
+
+/* ---------- specimen grid ---------- */
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:30px 34px}
+.spec{padding:22px 22px 24px}
+.spec > .tag{
+  font-family:'Caveat',cursive;font-size:1.2rem;color:var(--ink-soft);
+  display:block;margin-bottom:12px;
+}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+
+/* ---------- buttons ---------- */
+.btn{
+  position:relative;font:inherit;color:var(--ink);background:transparent;
+  padding:11px 22px;cursor:pointer;display:inline-flex;align-items:center;gap:9px;
+  transition:transform .08s ease,background .15s ease;
+}
+.btn::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  border:2px solid var(--ink);
+  border-radius:225px 14px 255px 12px/14px 250px 12px 230px;
+  filter:url(#wob1);
+}
+.btn.alt::before{border-radius:12px 240px 14px 255px/230px 12px 245px 14px;filter:url(#wob2)}
+.btn:hover{background:var(--pressed)}
+.btn:active{transform:translate(1px,2px)}
+.btn:focus-visible{outline:3px dashed var(--pink);outline-offset:5px}
+
+/* primary = filled with a pencil-hatched violet */
+.btn--primary{
+  color:#fff;
+  background:
+    repeating-linear-gradient(58deg,rgba(255,255,255,.14) 0 2px,transparent 2px 7px),
+    var(--violet);
+}
+:root[data-theme="dark"] .btn--primary,
+:root:not([data-theme="light"]) .btn--primary{color:var(--violet-deep)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .btn--primary{color:#fff}}
+.btn--primary:hover{filter:brightness(1.08)}
+.btn--primary::before{border-color:var(--ink)}
+
+.btn--quiet::before{border-style:dashed;opacity:.7}
+.btn--danger{color:var(--danger)}
+.btn--danger::before{border-color:var(--danger)}
+.btn[disabled]{opacity:.42;cursor:not-allowed;transform:none}
+.btn[disabled]::before{border-style:dotted}
+.btn--icon{padding:10px;width:46px;height:46px;justify-content:center}
+.btn--block{width:100%;justify-content:center}
+
+.btn .spin{display:none;width:15px;height:15px}
+.btn.is-busy .spin{display:block;animation:spin 1.1s linear infinite}
+.btn.is-busy{pointer-events:none;opacity:.8}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  .btn.is-busy .spin{animation-duration:0s}
+  *{scroll-behavior:auto}
+}
+
+/* ---------- forms ---------- */
+.field{margin-bottom:22px}
+.field label,.legend{display:block;margin-bottom:6px;color:var(--ink)}
+.hint{font-family:'Caveat',cursive;font-size:1.1rem;color:var(--ink-soft);margin-top:5px}
+.err{font-family:'Caveat',cursive;font-size:1.12rem;color:var(--danger);margin-top:5px;display:none}
+.field.is-bad .err{display:block}
+
+.input,.select,.textarea{
+  position:relative;font:inherit;color:var(--ink);background:var(--sheet);
+  width:100%;padding:11px 14px;border:0;
+}
+.inputwrap{position:relative}
+.inputwrap::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  border:2px solid var(--ink);
+  border-radius:225px 14px 255px 12px/14px 250px 12px 230px;
+  filter:url(#wob2);
+}
+.field.is-bad .inputwrap::before{border-color:var(--danger)}
+.input:focus,.select:focus,.textarea:focus{outline:none}
+.inputwrap:focus-within::before{border-color:var(--violet);border-width:3px}
+.input::placeholder,.textarea::placeholder{color:var(--ink-soft);opacity:.75}
+.textarea{resize:vertical;min-height:96px;display:block}
+.select{appearance:none;padding-right:42px;cursor:pointer}
+.inputwrap .caret{position:absolute;right:15px;top:50%;transform:translateY(-45%);pointer-events:none;color:var(--ink)}
+
+/* checkbox + radio, drawn */
+.check{display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin-bottom:11px;color:var(--ink)}
+.check input{position:absolute;opacity:0;width:0;height:0}
+.box{position:relative;flex:0 0 auto;width:24px;height:24px;margin-top:3px;color:var(--ink)}
+.box::before{
+  content:"";position:absolute;inset:0;border:2px solid currentColor;
+  border-radius:200px 12px 220px 10px/10px 210px 12px 200px;filter:url(#wob3);
+}
+.check.radio .box::before{border-radius:50%}
+.box svg{position:absolute;inset:-4px;opacity:0;transform:scale(.6) rotate(-8deg);
+  transition:opacity .13s ease,transform .13s ease;color:var(--violet)}
+.check input:checked + .box svg{opacity:1;transform:scale(1) rotate(0)}
+.check input:focus-visible + .box::before{border-color:var(--pink);border-width:3px}
+
+/* toggle */
+.switch{display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--ink)}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.track{position:relative;width:62px;height:32px;flex:0 0 auto}
+.track::before{
+  content:"";position:absolute;inset:0;border:2px solid var(--ink);
+  border-radius:40px;filter:url(#wob1);
+}
+.knob{position:absolute;top:4px;left:5px;width:22px;height:22px;transition:left .16s ease;color:var(--ink)}
+.knob::before{content:"";position:absolute;inset:0;border:2px solid currentColor;
+  background:var(--sheet);border-radius:50%;filter:url(#wob2)}
+.switch input:checked ~ .track .knob{left:33px;color:var(--violet)}
+.switch input:checked ~ .track::before{border-color:var(--violet)}
+.switch input:focus-visible ~ .track::before{border-color:var(--pink);border-width:3px}
+
+/* range */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;background:transparent;margin:10px 0;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:6px;background:var(--ink);opacity:.45;border-radius:6px;
+}
+input[type=range]::-moz-range-track{height:6px;background:var(--ink);opacity:.45;border-radius:6px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:26px;height:26px;margin-top:-10px;cursor:grab;
+  background:var(--violet);border:2px solid var(--ink);
+  border-radius:60% 40% 55% 45%/45% 55% 45% 55%;
+}
+input[type=range]::-moz-range-thumb{
+  width:24px;height:24px;cursor:grab;background:var(--violet);border:2px solid var(--ink);
+  border-radius:60% 40% 55% 45%/45% 55% 45% 55%;
+}
+input[type=range]:focus-visible{outline:3px dashed var(--pink);outline-offset:6px;border-radius:8px}
+.rangehead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.rangehead output{font-family:'Caveat',cursive;font-size:1.25rem;color:var(--violet)}
+
+/* ---------- navigation ---------- */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;padding:7px;margin-bottom:18px}
+.tab{
+  position:relative;font:inherit;color:var(--ink-soft);background:transparent;border:0;
+  padding:8px 17px;cursor:pointer;border-radius:8px;
+}
+.tab[aria-selected="true"]{color:var(--ink)}
+.tab[aria-selected="true"]::before{
+  content:"";position:absolute;inset:0;border:2px solid var(--violet);
+  border-radius:200px 12px 220px 10px/10px 210px 12px 200px;filter:url(#wob3);
+}
+.tab:focus-visible{outline:3px dashed var(--pink);outline-offset:3px}
+.panel{padding:4px 2px}
+.panel[hidden]{display:none}
+
+.crumbs{display:flex;flex-wrap:wrap;gap:9px;align-items:center;font-family:'Caveat',cursive;font-size:1.22rem}
+.crumbs a{color:var(--ink-soft);text-decoration:none;border-bottom:2px solid var(--pink)}
+.crumbs a:hover{color:var(--pink)}
+.crumbs span[aria-current]{color:var(--ink)}
+
+/* sidebar list nav */
+.stack{list-style:none;margin:0;padding:0}
+.stack li + li{margin-top:4px}
+.stack a{
+  display:flex;gap:11px;align-items:center;padding:9px 13px;color:var(--ink-soft);
+  text-decoration:none;border-radius:10px;position:relative;
+}
+.stack a:hover{background:var(--pressed);color:var(--ink)}
+.stack a[aria-current]{color:var(--ink)}
+.stack a[aria-current]::before{
+  content:"";position:absolute;left:-2px;top:8px;bottom:8px;width:3px;background:var(--pink);
+  border-radius:3px;
+}
+
+/* bottom bar, mirroring the sketch */
+.bottombar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 16px}
+.bottombar .mid{flex:0 0 auto}
+
+/* ---------- phone hero ---------- */
+.hero{display:grid;grid-template-columns:1fr;gap:34px;align-items:center;margin-top:34px}
+@media (min-width:880px){.hero{grid-template-columns:minmax(0,300px) minmax(0,1fr)}}
+.phone{position:relative;width:min(300px,100%);margin:0 auto;padding:14px 13px 13px}
+.phone::before{
+  border-width:3px;
+  border-radius:44px 38px 42px 40px/40px 44px 38px 42px;
+}
+.screen{
+  position:relative;overflow:hidden;
+  border-radius:30px 26px 30px 26px/26px 30px 26px 30px;
+  background:linear-gradient(180deg,#2a2150 0%,#4b3d8f 46%,#7d6ac0 74%,#b79ad0 100%);
+  padding:14px 12px 12px;color:#fff;
+}
+.screen .sky{display:block;width:100%;height:auto}
+.screen .overlay{transition:opacity .12s linear}
+.screen-actions{margin-top:12px;display:grid;gap:10px}
+.screen .btn{color:#fff}
+.screen .btn::before{border-color:rgba(255,255,255,.9)}
+.screen .btn--primary{background:
+  repeating-linear-gradient(58deg,rgba(255,255,255,.18) 0 2px,transparent 2px 7px),
+  #6ec2d8;color:#16233a}
+.screen .bottombar{color:#fff;padding:8px 10px;margin-top:10px}
+.screen .bottombar::before{border-color:rgba(255,255,255,.85)}
+
+/* ---------- tooltip / toast / card ---------- */
+.tip{position:relative;display:inline-block}
+.tip .bubble{
+  position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%) translateY(4px);
+  width:max-content;max-width:236px;padding:10px 14px;background:var(--paper);
+  font-family:'Caveat',cursive;font-size:1.16rem;line-height:1.25;
+  opacity:0;pointer-events:none;transition:opacity .14s ease,transform .14s ease;z-index:5;
+}
+.tip:hover .bubble,.tip:focus-within .bubble{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.toast{
+  display:flex;gap:12px;align-items:flex-start;padding:13px 16px;background:var(--paper);
+  max-width:400px;
+}
+.toast .dot{flex:0 0 auto;color:var(--sun);margin-top:2px}
+.toast strong{font-weight:400;color:var(--ink);display:block}
+.toast p{margin:0;font-size:.95em}
+#toastdock{position:fixed;right:18px;bottom:18px;z-index:40;display:grid;gap:10px}
+#toastdock .toast{animation:pop .22s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(10px) rotate(.8deg)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#toastdock .toast{animation:none}}
+
+.card{padding:20px 20px 22px}
+.card h3{margin-bottom:4px}
+.card p{margin-bottom:14px}
+.swatches{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.sw{width:74px}
+.sw i{display:block;height:44px;border:2px solid var(--ink);border-radius:200px 12px 220px 10px/10px 210px 12px 200px}
+.sw b{font-family:'Caveat',cursive;font-weight:500;font-size:1.05rem;color:var(--ink-soft);display:block;margin-top:3px}
+
+.themetoggle{position:fixed;top:14px;right:14px;z-index:50;background:var(--paper)}
+.scrolltable{overflow-x:auto}
+footer{margin-top:70px;font-family:'Caveat',cursive;font-size:1.2rem;color:var(--ink-soft)}
+</style>
+</head>
+<body>
+
+<!-- pencil-wobble filters: displace the outlines, leave the type alone -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <filter id="wob1" x="-15%" y="-15%" width="130%" height="130%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="4" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <filter id="wob2" x="-15%" y="-15%" width="130%" height="130%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="3" seed="17" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <filter id="wob3" x="-18%" y="-18%" width="136%" height="136%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="29" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<button class="btn btn--icon themetoggle" id="themebtn" aria-pressed="false" title="Turn the lights down">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+    <path d="M20 14.5A8.6 8.6 0 0 1 9.4 4.2a8.2 8.2 0 1 0 10.6 10.3Z"/>
+  </svg>
+  <span class="sr" hidden>Night sheet</span>
+</button>
+
+<main class="sheet">
+
+  <header class="masthead">
+    <div>
+      <h1>Sextant</h1>
+      <p>Hand-drawn interface parts for a sky-compass app. Everything below is live HTML — poke at it.</p>
+    </div>
+    <div class="stamp sk v3">pencil on graph paper</div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="phone sk">
+      <div class="screen">
+        <svg class="sky" viewBox="0 0 240 250" role="img" aria-label="Night sky with Ursa Minor and Polaris above a horizon">
+          <defs>
+            <g id="star4">
+              <path d="M0 -7 L1.6 -1.6 L7 0 L1.6 1.6 L0 7 L-1.6 1.6 L-7 0 L-1.6 -1.6 Z"/>
+            </g>
+          </defs>
+          <!-- faint dashed sight lines, as in the sketch -->
+          <g stroke="rgba(255,255,255,.35)" stroke-width="1" stroke-dasharray="5 7">
+            <path d="M4 44 L236 8" fill="none"/>
+            <path d="M4 74 L236 36" fill="none"/>
+          </g>
+          <!-- spiral galaxy -->
+          <g transform="translate(34,30)" fill="none" stroke="#e7dcff" stroke-width="1.7" stroke-linecap="round">
+            <path d="M0 0 A5 5 0 0 1 6 5 A11 11 0 0 1 -7 12 A17 17 0 0 1 -14 -6 A22 22 0 0 1 10 -16"/>
+            <path d="M0 0 A5 5 0 0 0 -6 -5 A11 11 0 0 0 7 -12 A17 17 0 0 0 15 6 A22 22 0 0 0 -9 17"/>
+          </g>
+          <!-- clock -->
+          <g transform="translate(196,30)">
+            <circle r="21" fill="rgba(255,255,255,.14)" stroke="#fff" stroke-width="2"/>
+            <circle r="16" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1"/>
+            <path d="M0 0 L0 -12 M0 0 L9 5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          </g>
+          <!-- constellation -->
+          <g class="overlay" id="skyoverlay">
+            <!-- cloud -->
+            <path d="M92 96 q10 -16 28 -11 q11 -14 27 -6 q17 -3 18 12 q13 5 6 16 q-30 8 -79 3 q-11 -8 0 -14 Z"
+                  fill="rgba(255,255,255,.22)" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/>
+            <!-- dipper lines -->
+            <g stroke="#fff" stroke-width="1.4" fill="none" opacity=".85">
+              <path d="M104 128 L118 116 L138 120 L152 106"/>
+              <path d="M138 120 L146 138 L120 146 L104 128"/>
+            </g>
+            <g fill="#fff8d8">
+              <use href="#star4" x="152" y="106" transform="translate(0,0)"/>
+              <use href="#star4" x="104" y="128"/>
+              <use href="#star4" x="118" y="116"/>
+              <use href="#star4" x="138" y="120"/>
+              <use href="#star4" x="146" y="138"/>
+              <use href="#star4" x="120" y="146"/>
+            </g>
+            <text x="104" y="98" font-family="Patrick Hand, cursive" font-size="11" fill="#fff" text-anchor="middle">URSA</text>
+            <text x="104" y="109" font-family="Patrick Hand, cursive" font-size="11" fill="#fff" text-anchor="middle">MINOR</text>
+            <text x="176" y="100" font-family="Patrick Hand, cursive" font-size="11" fill="#fff" text-anchor="middle">POLARIS</text>
+            <path d="M166 103 L156 106" stroke="#fff" stroke-width="1.2"/>
+            <!-- scattered stars -->
+            <g fill="#fff" opacity=".8">
+              <circle cx="62" cy="150" r="1.6"/><circle cx="196" cy="150" r="1.6"/>
+              <circle cx="40" cy="196" r="1.8"/><circle cx="212" cy="186" r="1.5"/>
+              <circle cx="150" cy="200" r="1.6"/><circle cx="86" cy="212" r="1.4"/>
+              <circle cx="120" cy="66" r="1.5"/><circle cx="72" cy="78" r="1.3"/>
+            </g>
+          </g>
+          <!-- sun / marker pin -->
+          <g transform="translate(70,116)">
+            <g stroke="#f3c969" stroke-width="1.8" stroke-linecap="round">
+              <path d="M0 -14 V-22 M-10 -10 L-16 -16 M10 -10 L16 -16 M-14 0 H-22 M14 0 H22"/>
+            </g>
+            <circle r="8" fill="#f6d98a" stroke="#e8a33d" stroke-width="1.6"/>
+            <path d="M0 8 L0 70" stroke="#e8e0ff" stroke-width="4" stroke-linecap="round"/>
+            <path d="M-5 70 L5 70 L0 80 Z" fill="#2a2150"/>
+          </g>
+          <!-- horizon bands -->
+          <path d="M0 158 q40 -9 80 0 t80 0 t80 -4 v14 q-40 8 -80 2 t-80 2 t-80 -4 Z" fill="#5a9a72"/>
+          <path d="M0 170 q40 8 80 2 t80 2 t80 -4 v12 q-40 8 -80 2 t-80 2 t-80 -4 Z" fill="#d9b954"/>
+          <!-- compass -->
+          <g transform="translate(120,168)">
+            <circle r="24" fill="#1d1738" stroke="#fff" stroke-width="2.5"/>
+            <text y="9" font-family="Caveat, cursive" font-size="30" font-weight="700" fill="#fff" text-anchor="middle">N</text>
+          </g>
+        </svg>
+
+        <div class="screen-actions">
+          <button class="btn btn--primary btn--block" type="button" data-toast="AR view on|Hold the phone up and sweep slowly toward the horizon.">
+            Activate AR
+          </button>
+        </div>
+
+        <nav class="bottombar sk v2" aria-label="App">
+          <button class="btn btn--icon" type="button" aria-label="Alerts" data-toast="Polaris is up|Clear sky over Kuala Terengganu until 04:10.">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 19a2.4 2.4 0 0 0 4 0"/></svg>
+          </button>
+          <span class="mid"><button class="btn alt" type="button">AR</button></span>
+          <button class="btn btn--icon" type="button" aria-label="Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h11"/></svg>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <div>
+      <h2>The screen it all comes from</h2>
+      <svg class="rule" viewBox="0 0 340 12" aria-hidden="true"><path d="M2 8 q30 -7 62 -2 t64 -1 t60 3 t68 -5 t82 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <p class="lede">Same parts, one product: a sky compass that points to Polaris and can wind the sky back to any night in history.</p>
+      <p class="note">Every outline is a real pencil wobble — an SVG turbulence filter, not a rounded rectangle</p>
+      <p class="note">Drag the brightness slider further down and the stars on this phone dim with it</p>
+      <div class="swatches" role="list">
+        <div class="sw" role="listitem"><i style="background:var(--violet)"></i><b>violet</b></div>
+        <div class="sw" role="listitem"><i style="background:var(--sea)"></i><b>sea</b></div>
+        <div class="sw" role="listitem"><i style="background:var(--sand)"></i><b>sand</b></div>
+        <div class="sw" role="listitem"><i style="background:var(--pink)"></i><b>margin</b></div>
+        <div class="sw" role="listitem"><i style="background:var(--ink)"></i><b>graphite</b></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUTTONS -->
+  <section id="buttons">
+    <h2>Buttons</h2>
+    <svg class="rule" viewBox="0 0 340 12" aria-hidden="true"><path d="M2 8 q30 -7 62 -2 t64 -1 t60 3 t68 -5 t82 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+    <div class="specs">
+      <div class="spec sk">
+        <span class="tag">weights</span>
+        <div class="row">
+          <button class="btn btn--primary" type="button">Activate AR</button>
+          <button class="btn" type="button">Save sighting</button>
+          <button class="btn btn--quiet" type="button">Not now</button>
+          <button class="btn btn--danger alt" type="button">Clear log</button>
+        </div>
+      </div>
+
+      <div class="spec sk v2">
+        <span class="tag">states</span>
+        <div class="row">
+          <button class="btn" type="button" id="busybtn">
+            <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 0 1 9 9"/></svg>
+            <span>Find my sky</span>
+          </button>
+          <button class="btn" type="button" disabled>No signal</button>
+          <span class="tip">
+            <button class="btn btn--icon alt" type="button" aria-describedby="tip1" aria-label="How AR works">?</button>
+            <span class="bubble sk v3" id="tip1" role="tooltip">Hold the phone up. Stars snap onto what the camera sees.</span>
+          </span>
+        </div>
+        <p class="hint">Press “Find my sky” — the spinner is the loading state.</p>
+      </div>
+
+      <div class="spec sk v3">
+        <span class="tag">full width + icon</span>
+        <button class="btn btn--primary btn--block" type="button" data-toast="Sighting saved|Logged at 03:42, bearing 000°.">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-11"/></svg>
+          Save this sighting
+        </button>
+        <p class="hint">Fires a passive notification, bottom right.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORMS -->
+  <section id="forms">
+    <h2>Forms</h2>
+    <svg class="rule" viewBox="0 0 340 12" aria-hidden="true"><path d="M2 8 q30 -7 62 -2 t64 -1 t60 3 t68 -5 t82 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+    <p class="lede">The settings sheet behind the compass: where you are, when you are, and what the sky should show.</p>
+
+    <div class="specs">
+      <div class="spec sk">
+        <span class="tag">text, select, date</span>
+
+        <div class="field" id="latfield">
+          <label for="lat">Your latitude</label>
+          <div class="inputwrap"><input class="input" id="lat" type="text" inputmode="decimal" placeholder="5.33" value="5.33"></div>
+          <div class="hint">Leave blank to use the phone’s GPS.</div>
+          <div class="err">Enter a latitude between −90 and 90.</div>
+        </div>
+
+        <div class="field">
+          <label for="when">Night to show</label>
+          <div class="inputwrap"><input class="input" id="when" type="date" value="2026-09-18"></div>
+          <div class="hint">Wind it back as far as 4000 BC.</div>
+        </div>
+
+        <div class="field">
+          <label for="star">Star to follow</label>
+          <div class="inputwrap">
+            <select class="select" id="star">
+              <option>Polaris — north</option>
+              <option>Sirius</option>
+              <option>Canopus</option>
+              <option>Vega</option>
+            </select>
+            <svg class="caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="note">Log note</label>
+          <div class="inputwrap"><textarea class="textarea" id="note" placeholder="Haze low on the horizon, Polaris clear."></textarea></div>
+        </div>
+
+        <div class="row">
+          <button class="btn btn--primary" type="button" id="savebtn">Save settings</button>
+          <button class="btn btn--quiet" type="button" id="breakbtn">Show the error state</button>
+        </div>
+      </div>
+
+      <div class="spec sk v2">
+        <span class="tag">choices</span>
+
+        <div class="field">
+          <div class="rangehead">
+            <label for="bright">Sky brightness</label>
+            <output id="brightout" for="bright">100%</output>
+          </div>
+          <input type="range" id="bright" min="15" max="100" value="100">
+          <div class="hint">Dims the overlay so faint stars stay visible.</div>
+        </div>
+
+        <div class="field">
+          <span class="legend">Show on screen</span>
+          <label class="check">
+            <input type="checkbox" checked>
+            <span class="box"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M7 17l6 7 13-16"/></svg></span>
+            <span>Constellation lines</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" checked>
+            <span class="box"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M7 17l6 7 13-16"/></svg></span>
+            <span>Star names</span>
+          </label>
+          <label class="check">
+            <input type="checkbox">
+            <span class="box"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M7 17l6 7 13-16"/></svg></span>
+            <span>Planets and the moon</span>
+          </label>
+        </div>
+
+        <div class="field">
+          <span class="legend">North reference</span>
+          <label class="check radio">
+            <input type="radio" name="north" checked>
+            <span class="box"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M7 17l6 7 13-16"/></svg></span>
+            <span>True north</span>
+          </label>
+          <label class="check radio">
+            <input type="radio" name="north">
+            <span class="box"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M7 17l6 7 13-16"/></svg></span>
+            <span>Magnetic north</span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label class="switch">
+            <input type="checkbox" checked>
+            <span class="track"><span class="knob"></span></span>
+            <span>Tell me when Polaris rises</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVIGATION -->
+  <section id="nav">
+    <h2>Navigation</h2>
+    <svg class="rule" viewBox="0 0 340 12" aria-hidden="true"><path d="M2 8 q30 -7 62 -2 t64 -1 t60 3 t68 -5 t82 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="#nav">Sky</a><span aria-hidden="true">›</span>
+      <a href="#nav">Northern stars</a><span aria-hidden="true">›</span>
+      <span aria-current="page">Polaris</span>
+    </nav>
+
+    <div class="specs" style="margin-top:26px">
+      <div class="spec sk">
+        <span class="tag">tabs</span>
+        <div class="tabs sk thin v3" role="tablist" aria-label="Star detail">
+          <button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true">Tonight</button>
+          <button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false">Path</button>
+          <button class="tab" role="tab" id="t3" aria-controls="p3" aria-selected="false">History</button>
+        </div>
+        <div class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+          <p>Polaris sits 5° above your horizon and barely moves all night. Everything else wheels around it.</p>
+        </div>
+        <div class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+          <p>Traces a circle less than 1° wide — close enough to steer by, which is the whole reason sailors trusted it.</p>
+        </div>
+        <div class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+          <p>In 3000 BC the pole star was Thuban, not Polaris. Wind the date back and the compass needle follows.</p>
+        </div>
+      </div>
+
+      <div class="spec sk v2">
+        <span class="tag">side list</span>
+        <ul class="stack">
+          <li><a href="#nav" aria-current="page">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18"/></svg>Compass</a></li>
+          <li><a href="#nav">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 4l2 5 5 1-4 4 1 6-4-3-4 3 1-6-4-4 5-1Z"/></svg>Star chart</a></li>
+          <li><a href="#nav">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Time travel</a></li>
+          <li><a href="#nav">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Sighting log</a></li>
+        </ul>
+      </div>
+
+      <div class="spec sk v3">
+        <span class="tag">bottom bar</span>
+        <nav class="bottombar sk thin" aria-label="Demo app bar">
+          <button class="btn btn--icon" type="button" aria-label="Alerts"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 19a2.4 2.4 0 0 0 4 0"/></svg></button>
+          <span class="mid"><button class="btn alt" type="button">AR</button></span>
+          <button class="btn btn--icon" type="button" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h11"/></svg></button>
+        </nav>
+        <p class="note" style="margin-top:18px">three targets, thumb-width apart, AR always in the middle</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MESSAGES -->
+  <section id="messages">
+    <h2>Messages</h2>
+    <svg class="rule" viewBox="0 0 340 12" aria-hidden="true"><path d="M2 8 q30 -7 62 -2 t64 -1 t60 3 t68 -5 t82 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+    <div class="specs">
+      <div class="toast sk v2">
+        <span class="dot"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4l2 5 5 1-4 4 1 6-4-3-4 3 1-6-4-4 5-1Z"/></svg></span>
+        <div><strong>Polaris is up</strong><p>Clear sky until 04:10. Good window for a sighting.</p></div>
+      </div>
+      <div class="card sk v3">
+        <h3>Empty log</h3>
+        <p>No sightings yet. Point the phone north and save your first one.</p>
+        <button class="btn" type="button">Take a sighting</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>Sextant — sketch kit · all components on one sheet</footer>
+</main>
+
+<div id="toastdock" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var root = document.documentElement;
+
+  /* theme, remembered per browser */
+  var btn = document.getElementById('themebtn');
+  function prefersDark(){ return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+  function apply(mode){
+    if(mode){ root.setAttribute('data-theme', mode); }
+    var dark = root.getAttribute('data-theme') === 'dark' || (!root.getAttribute('data-theme') && prefersDark());
+    btn.setAttribute('aria-pressed', String(dark));
+  }
+  try{ var saved = localStorage.getItem('sextant-theme'); if(saved){ apply(saved); } else { apply(null); } }
+  catch(e){ apply(null); }
+  btn.addEventListener('click', function(){
+    var dark = root.getAttribute('data-theme') === 'dark' || (!root.getAttribute('data-theme') && prefersDark());
+    var next = dark ? 'light' : 'dark';
+    apply(next);
+    try{ localStorage.setItem('sextant-theme', next); }catch(e){}
+  });
+
+  /* toasts */
+  var dock = document.getElementById('toastdock');
+  function toast(title, body){
+    var el = document.createElement('div');
+    el.className = 'toast sk v2';
+    el.innerHTML = '<span class="dot"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4l2 5 5 1-4 4 1 6-4-3-4 3 1-6-4-4 5-1Z"/></svg></span><div></div>';
+    var box = el.lastChild;
+    var s = document.createElement('strong'); s.textContent = title;
+    var p = document.createElement('p'); p.textContent = body;
+    box.appendChild(s); box.appendChild(p);
+    dock.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4200);
+  }
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-toast]');
+    if(!t) return;
+    var parts = t.getAttribute('data-toast').split('|');
+    toast(parts[0], parts[1] || '');
+  });
+
+  /* loading state */
+  var busy = document.getElementById('busybtn');
+  busy.addEventListener('click', function(){
+    busy.classList.add('is-busy');
+    setTimeout(function(){ busy.classList.remove('is-busy'); toast('Sky located', 'Matched 214 stars overhead.'); }, 1600);
+  });
+
+  /* brightness drives the real overlay */
+  var range = document.getElementById('bright');
+  var out = document.getElementById('brightout');
+  var overlay = document.getElementById('skyoverlay');
+  function sync(){
+    out.value = range.value + '%';
+    overlay.style.opacity = (range.value / 100).toFixed(2);
+  }
+  range.addEventListener('input', sync); sync();
+
+  /* error state demo */
+  var field = document.getElementById('latfield');
+  document.getElementById('breakbtn').addEventListener('click', function(){
+    field.classList.toggle('is-bad');
+    var bad = field.classList.contains('is-bad');
+    this.textContent = bad ? 'Clear the error' : 'Show the error state';
+    if(bad){ document.getElementById('lat').value = '181'; }
+  });
+  document.getElementById('savebtn').addEventListener('click', function(){
+    if(field.classList.contains('is-bad')){ document.getElementById('lat').focus(); return; }
+    toast('Settings saved', 'Sky set for 18 Sep 2026 at 5.33° N.');
+  });
+
+  /* tabs, with arrow keys */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function select(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    tab.focus();
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener('click', function(){ select(tab); });
+    tab.addEventListener('keydown', function(e){
+      if(e.key === 'ArrowRight'){ select(tabs[(i+1)%tabs.length]); }
+      if(e.key === 'ArrowLeft'){ select(tabs[(i-1+tabs.length)%tabs.length]); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

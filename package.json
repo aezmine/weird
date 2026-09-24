@@ -1,0 +1,9 @@
+{
+  "name": "funny-faces-v2",
+  "version": "1.0.0",
+  "description": "Funny Faces Gallery with Firestore Live Chat, Comments, and Likes",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

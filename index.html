@@ -54,6 +54,11 @@
             <button id="admin-logout-btn" class="btn btn--ghost btn--xs" title="Log out of Admin Mode">Logout</button>
           </div>
         </div>
+        <button id="toggle-chat-header-btn" class="btn btn--secondary btn-chat-toggle" title="Toggle Live Chat">
+          <span class="live-dot-inline" aria-hidden="true"></span>
+          <span>💬 Live Chat</span>
+          <span id="header-chat-badge" class="header-chat-badge" style="display: none;">0</span>
+        </button>
         <button id="bulk-upload-btn" class="btn btn--secondary" title="Upload multiple funny photos at once">
           <span aria-hidden="true">📁</span> Bulk Upload
         </button>
@@ -70,74 +75,161 @@
       </div>
     </div>
 
-    <!-- Gallery Controls (Search Bar & Count) -->
-    <div class="gallery-controls">
-      <div class="search-box">
-        <span class="search-icon" aria-hidden="true">🔍</span>
-        <input type="search" id="search-input" class="search-input" placeholder="Search faces by name, expression, or caption..." autocomplete="off">
+    <!-- App Split Layout: Gallery on Left / Center, Live Chat on Right -->
+    <div class="app-split-container">
+      
+      <!-- Gallery Column -->
+      <div class="gallery-column">
+        <!-- Gallery Controls (Search Bar & Count) -->
+        <div class="gallery-controls">
+          <div class="search-box">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+            <input type="search" id="search-input" class="search-input" placeholder="Search faces by name, expression, or caption..." autocomplete="off">
+          </div>
+          <div class="stats-count" id="faces-counter">Loading faces...</div>
+        </div>
+
+        <!-- Faces Gallery Grid Section -->
+        <main>
+          <!-- Loading Skeleton State -->
+          <div id="loading-state" class="faces-grid skeleton-grid">
+            <div class="card skeleton-card">
+              <div class="skeleton-thumb"></div>
+              <div class="skeleton-content">
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line"></div>
+              </div>
+            </div>
+            <div class="card skeleton-card">
+              <div class="skeleton-thumb"></div>
+              <div class="skeleton-content">
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line"></div>
+              </div>
+            </div>
+            <div class="card skeleton-card">
+              <div class="skeleton-thumb"></div>
+              <div class="skeleton-content">
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line"></div>
+              </div>
+            </div>
+            <div class="card skeleton-card">
+              <div class="skeleton-thumb"></div>
+              <div class="skeleton-content">
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Faces Grid Container -->
+          <div id="faces-container" class="faces-grid">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Empty State -->
+          <div id="empty-state" class="empty-state" style="display: none;">
+            <div class="empty-icon" aria-hidden="true">😶</div>
+            <h2>No funny faces yet</h2>
+            <p>Your gallery is currently empty. Add your first funny face or upload in bulk.</p>
+            <div class="empty-actions">
+              <button id="empty-bulk-btn" class="btn btn--secondary">📁 Bulk Upload</button>
+              <button id="empty-add-btn" class="btn btn--primary">＋ Add Funny Face</button>
+            </div>
+          </div>
+        </main>
+
+        <!-- App Footer -->
+        <footer class="app-footer">
+          <p>effortless developed by min</p>
+        </footer>
       </div>
-      <div class="stats-count" id="faces-counter">Loading faces...</div>
+
+      <!-- Right Column: Real-Time Live Chat & Comments Panel (Firestore only) -->
+      <aside id="live-chat-panel" class="live-chat-panel" aria-label="Live Chat & Community Comments">
+        <!-- Panel Header -->
+        <div class="chat-header">
+          <div class="chat-header-main">
+            <div class="chat-live-badge">
+              <span class="live-pulse-dot" aria-hidden="true"></span>
+              <span class="chat-title">Live Chat</span>
+            </div>
+            <span id="chat-count-pill" class="chat-count-pill" title="Total messages">0</span>
+          </div>
+
+          <div class="chat-header-controls">
+            <!-- Sound Toggle -->
+            <button type="button" id="chat-sound-btn" class="chat-btn-icon" title="Toggle notification sound" aria-label="Toggle chat sound">
+              <span id="chat-sound-icon">🔔</span>
+            </button>
+            <!-- Desktop Collapse Toggle -->
+            <button type="button" id="chat-collapse-btn" class="chat-btn-icon chat-collapse-desktop-btn" title="Collapse live chat panel" aria-label="Collapse live chat">
+              ✕
+            </button>
+            <!-- Mobile Close Button -->
+            <button type="button" id="chat-close-mobile-btn" class="chat-btn-icon chat-close-mobile-btn" title="Close chat" aria-label="Close chat">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- User Identity Strip (Click to customize name & avatar) -->
+        <div class="chat-user-strip">
+          <span class="strip-label">Chatting as:</span>
+          <button type="button" id="chat-user-pill" class="chat-user-pill" title="Click to customize nickname & avatar">
+            <span id="chat-user-avatar" class="user-avatar-tag">🤪</span>
+            <span id="chat-user-name" class="user-name-tag">Guest</span>
+            <span class="edit-pill-badge">Edit</span>
+          </button>
+        </div>
+
+        <!-- Chat Messages Feed -->
+        <div id="chat-messages-container" class="chat-messages-container" role="log" aria-live="polite">
+          <div class="chat-loading-placeholder">
+            <span class="spinner"></span>
+            <span>Connecting to live chat...</span>
+          </div>
+        </div>
+
+        <!-- Chat Quick Reaction Bar -->
+        <div class="chat-quick-emojis" aria-label="Quick reactions">
+          <button type="button" class="quick-emoji-btn" data-emoji="😂" title="React with 😂">😂</button>
+          <button type="button" class="quick-emoji-btn" data-emoji="💀" title="React with 💀">💀</button>
+          <button type="button" class="quick-emoji-btn" data-emoji="🤣" title="React with 🤣">🤣</button>
+          <button type="button" class="quick-emoji-btn" data-emoji="👏" title="React with 👏">👏</button>
+          <button type="button" class="quick-emoji-btn" data-emoji="🔥" title="React with 🔥">🔥</button>
+          <button type="button" class="quick-emoji-btn" data-emoji="❤️" title="React with ❤️">❤️</button>
+          <button type="button" class="quick-emoji-btn" data-emoji="💯" title="React with 💯">💯</button>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form id="chat-form" class="chat-input-form">
+          <div class="chat-input-wrapper">
+            <input
+              type="text"
+              id="chat-input"
+              class="chat-text-input"
+              placeholder="Say something funny..."
+              autocomplete="off"
+              maxlength="280"
+              required
+            >
+            <button type="submit" id="chat-send-btn" class="chat-send-btn" aria-label="Send message" title="Send (Enter)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </aside>
+
     </div>
-
-    <!-- Faces Gallery Grid Section -->
-    <main>
-      <!-- Loading Skeleton State -->
-      <div id="loading-state" class="faces-grid skeleton-grid">
-        <div class="card skeleton-card">
-          <div class="skeleton-thumb"></div>
-          <div class="skeleton-content">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line medium"></div>
-            <div class="skeleton-line"></div>
-          </div>
-        </div>
-        <div class="card skeleton-card">
-          <div class="skeleton-thumb"></div>
-          <div class="skeleton-content">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line medium"></div>
-            <div class="skeleton-line"></div>
-          </div>
-        </div>
-        <div class="card skeleton-card">
-          <div class="skeleton-thumb"></div>
-          <div class="skeleton-content">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line medium"></div>
-            <div class="skeleton-line"></div>
-          </div>
-        </div>
-        <div class="card skeleton-card">
-          <div class="skeleton-thumb"></div>
-          <div class="skeleton-content">
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line medium"></div>
-            <div class="skeleton-line"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Faces Grid Container -->
-      <div id="faces-container" class="faces-grid">
-        <!-- Rendered dynamically -->
-      </div>
-
-      <!-- Empty State -->
-      <div id="empty-state" class="empty-state" style="display: none;">
-        <div class="empty-icon" aria-hidden="true">😶</div>
-        <h2>No funny faces yet</h2>
-        <p>Your gallery is currently empty. Add your first funny face or upload in bulk.</p>
-        <div class="empty-actions">
-          <button id="empty-bulk-btn" class="btn btn--secondary">📁 Bulk Upload</button>
-          <button id="empty-add-btn" class="btn btn--primary">＋ Add Funny Face</button>
-        </div>
-      </div>
-    </main>
-
-    <!-- App Footer -->
-    <footer class="app-footer">
-      <p>effortless developed by min</p>
-    </footer>
   </div>
 
   <!-- Face Detail / Inspect Dialog -->
@@ -151,6 +243,10 @@
         <!-- Populated dynamically -->
       </div>
       <div class="dialog-footer">
+        <button type="button" id="detail-like-btn" class="btn btn--secondary btn-detail-like" title="Like this face">
+          <span class="heart-icon">❤️</span> <span id="detail-like-text">Like</span> (<span id="detail-like-count">0</span>)
+        </button>
+        <div style="flex: 1;"></div>
         <button id="detail-delete-btn" class="btn btn--danger">Delete</button>
         <button id="detail-edit-btn" class="btn btn--secondary">Edit</button>
         <button id="detail-close-btn" class="btn btn--ghost">Close</button>
@@ -352,6 +448,51 @@
         <div class="dialog-footer">
           <button type="button" id="cancel-admin-dialog-btn" class="btn btn--ghost">Cancel</button>
           <button type="submit" id="submit-admin-btn" class="btn btn--primary">Log In</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Mobile Chat Drawer Backdrop Overlay -->
+  <div id="chat-backdrop" class="chat-backdrop" style="display: none;"></div>
+
+  <!-- Mobile Floating Chat Action Button -->
+  <button id="mobile-chat-fab" class="mobile-chat-fab" aria-label="Open Live Chat">
+    <span class="fab-pulse-dot" aria-hidden="true"></span>
+    <span class="fab-icon" aria-hidden="true">💬</span>
+    <span class="fab-label">Live Chat</span>
+    <span id="mobile-chat-badge" class="fab-badge" style="display: none;">0</span>
+  </button>
+
+  <!-- Nickname & Avatar Dialog -->
+  <dialog id="nickname-dialog" class="app-dialog modal-sm">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>Customize Profile</h3>
+        <button id="close-nickname-dialog-btn" class="btn-icon" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="nickname-form">
+        <div class="dialog-body">
+          <p class="dialog-desc" style="margin-bottom: 12px;">Choose your avatar and display name for live chat and comments.</p>
+          
+          <div class="field">
+            <label>Pick Avatar</label>
+            <div id="avatar-picker-grid" class="avatar-picker-grid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="field" style="margin-top: 12px;">
+            <label for="nickname-input">Display Name <span class="required">*</span></label>
+            <div class="nickname-input-group">
+              <input type="text" id="nickname-input" class="input" placeholder="e.g. LaughMaster" maxlength="20" required>
+              <button type="button" id="randomize-nickname-btn" class="btn btn--secondary btn--sm" title="Generate random funny nickname">🎲 Random</button>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button type="button" id="cancel-nickname-btn" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="save-nickname-btn" class="btn btn--primary">Save Profile</button>
         </div>
       </form>
     </div>

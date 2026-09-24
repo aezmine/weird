@@ -8,6 +8,21 @@ import {
   deleteFace,
   bulkCreateFaces
 } from "./services/faces-service.js";
+import {
+  getCurrentChatUser,
+  saveCurrentChatUser,
+  isFaceLiked,
+  toggleFaceLike,
+  isMessageLiked,
+  toggleMessageLike,
+  subscribeToLiveChat,
+  sendChatMessage,
+  subscribeToFaceComments,
+  addFaceComment,
+  playNotificationSound,
+  FUNNY_AVATARS,
+  STORAGE_KEY_SOUND
+} from "./services/chat-service.js";
 
 // Admin Auth State & Config
 const ADMIN_ACCESS_CODE = "minmin321";
@@ -24,6 +39,18 @@ let activeFaceForDelete = null;
 let selectedImageFile = null;
 let bulkSelectedFiles = [];
 
+// Live Chat & Comment State
+let currentUser = getCurrentChatUser();
+let selectedAvatarChoice = currentUser.avatar;
+let activeFaceCommentsUnsubscribe = null;
+let hasInitialChatLoaded = false;
+let soundEnabled = true;
+try {
+  soundEnabled = localStorage.getItem(STORAGE_KEY_SOUND) !== "false";
+} catch {}
+let isChatPanelCollapsed = false;
+let isMobileChatOpen = false;
+
 // DOM Elements
 const facesContainer = document.getElementById("faces-container");
 const loadingState = document.getElementById("loading-state");
@@ -33,6 +60,41 @@ const searchInput = document.getElementById("search-input");
 const configNotice = document.getElementById("config-notice");
 const themeBtn = document.getElementById("themebtn");
 const toastDock = document.getElementById("toastdock");
+
+// Layout & Live Chat Elements
+const appSplitContainer = document.querySelector(".app-split-container");
+const liveChatPanel = document.getElementById("live-chat-panel");
+const toggleChatHeaderBtn = document.getElementById("toggle-chat-header-btn");
+const headerChatBadge = document.getElementById("header-chat-badge");
+const chatCountPill = document.getElementById("chat-count-pill");
+const chatSoundBtn = document.getElementById("chat-sound-btn");
+const chatSoundIcon = document.getElementById("chat-sound-icon");
+const chatCollapseBtn = document.getElementById("chat-collapse-btn");
+const chatCloseMobileBtn = document.getElementById("chat-close-mobile-btn");
+const chatUserPill = document.getElementById("chat-user-pill");
+const chatUserAvatar = document.getElementById("chat-user-avatar");
+const chatUserName = document.getElementById("chat-user-name");
+const chatMessagesContainer = document.getElementById("chat-messages-container");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+const quickEmojiBtns = document.querySelectorAll(".quick-emoji-btn");
+const mobileChatFab = document.getElementById("mobile-chat-fab");
+const mobileChatBadge = document.getElementById("mobile-chat-badge");
+const chatBackdrop = document.getElementById("chat-backdrop");
+
+// Nickname Dialog Elements
+const nicknameDialog = document.getElementById("nickname-dialog");
+const closeNicknameDialogBtn = document.getElementById("close-nickname-dialog-btn");
+const cancelNicknameBtn = document.getElementById("cancel-nickname-btn");
+const nicknameForm = document.getElementById("nickname-form");
+const nicknameInput = document.getElementById("nickname-input");
+const randomizeNicknameBtn = document.getElementById("randomize-nickname-btn");
+const avatarPickerGrid = document.getElementById("avatar-picker-grid");
+
+// Detail Dialog Like Elements
+const detailLikeBtn = document.getElementById("detail-like-btn");
+const detailLikeText = document.getElementById("detail-like-text");
+const detailLikeCount = document.getElementById("detail-like-count");
 
 // Action Buttons
 const addFaceBtn = document.getElementById("add-face-btn");
@@ -246,14 +308,33 @@ function renderCards(facesToRender) {
     // Deliver optimized thumbnail size for cards
     const thumbUrl = getOptimizedImageUrl(face.image, { width: 560, height: 420, fit: "fill" });
 
+    const isLiked = isFaceLiked(face.id);
+    const likesCount = typeof face.likesCount === "number" ? face.likesCount : 0;
+    const commentsCount = typeof face.commentsCount === "number" ? face.commentsCount : 0;
+
+    const socialControls = `
+      <div class="card-social-actions">
+        <button type="button" class="btn-card-like ${isLiked ? 'liked' : ''}" data-face-id="${escapeHtml(face.id)}" title="${isLiked ? 'Unlike' : 'Like'} this face" aria-label="Like ${escapeHtml(face.name)}">
+          <span class="like-heart" aria-hidden="true">${isLiked ? '❤️' : '🤍'}</span>
+          <span class="like-num">${likesCount}</span>
+        </button>
+        <button type="button" class="btn-card-comment" data-face-id="${escapeHtml(face.id)}" title="View and write comments" aria-label="Comments for ${escapeHtml(face.name)}">
+          <span aria-hidden="true">💬</span>
+          <span class="comment-num">${commentsCount}</span>
+        </button>
+      </div>
+    `;
+
     const actionButtons = isAdmin
       ? `
         <button type="button" class="btn btn--secondary btn--sm btn-detail">Inspect</button>
+        ${socialControls}
         <button type="button" class="btn-icon btn-edit" title="Edit face" aria-label="Edit ${escapeHtml(face.name)}">✏️</button>
         <button type="button" class="btn-icon btn-delete" title="Delete face" aria-label="Delete ${escapeHtml(face.name)}">🗑️</button>
       `
       : `
-        <button type="button" class="btn btn--secondary btn--sm btn-detail" style="width: 100%;">Inspect</button>
+        <button type="button" class="btn btn--secondary btn--sm btn-detail">Inspect</button>
+        ${socialControls}
       `;
 
     card.innerHTML = `
@@ -278,6 +359,46 @@ function renderCards(facesToRender) {
     card.querySelector(".card-img-wrapper").addEventListener("click", openDetailTrigger);
     card.querySelector(".card-title").addEventListener("click", openDetailTrigger);
     card.querySelector(".btn-detail").addEventListener("click", openDetailTrigger);
+
+    // Like button click
+    const cardLikeBtn = card.querySelector(".btn-card-like");
+    if (cardLikeBtn) {
+      cardLikeBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        try {
+          const newlyLiked = await toggleFaceLike(face.id);
+          const numEl = cardLikeBtn.querySelector(".like-num");
+          const heartEl = cardLikeBtn.querySelector(".like-heart");
+          let current = parseInt(numEl.textContent, 10) || 0;
+          if (newlyLiked) {
+            cardLikeBtn.classList.add("liked");
+            heartEl.textContent = "❤️";
+            heartEl.classList.add("like-anim");
+            numEl.textContent = current + 1;
+            face.likesCount = current + 1;
+            showToast(`Liked "${face.name}"! ❤️`, "success");
+          } else {
+            cardLikeBtn.classList.remove("liked");
+            heartEl.textContent = "🤍";
+            heartEl.classList.remove("like-anim");
+            numEl.textContent = Math.max(0, current - 1);
+            face.likesCount = Math.max(0, current - 1);
+          }
+        } catch (err) {
+          console.error("Like toggle failed:", err);
+          showToast("Unable to update like. Please try again.", "error");
+        }
+      });
+    }
+
+    // Comment button click -> Open Details directly to comments
+    const cardCommentBtn = card.querySelector(".btn-card-comment");
+    if (cardCommentBtn) {
+      cardCommentBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openDetails(face, true);
+      });
+    }
 
     // Edit button click (Admin only)
     const editBtn = card.querySelector(".btn-edit");
@@ -346,10 +467,38 @@ function formatFaceDate(createdAt) {
   return "Recently added";
 }
 
+// Relative time formatter for live comments and chat
+function formatTimeAgo(timestamp) {
+  if (!timestamp) return "just now";
+  try {
+    const millis = timestamp.toMillis ? timestamp.toMillis() : (typeof timestamp === "number" ? timestamp : new Date(timestamp).getTime());
+    if (isNaN(millis)) return "just now";
+    const diffSec = Math.floor((Date.now() - millis) / 1000);
+    if (diffSec < 10) return "just now";
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    const d = new Date(millis);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch {
+    return "just now";
+  }
+}
+
 // Open Details Dialog
-function openDetails(face) {
+function openDetails(face, shouldFocusComments = false) {
   activeFaceForDetails = face;
   detailTitle.textContent = face.name;
+
+  // Clean up any previous comments listener
+  if (activeFaceCommentsUnsubscribe) {
+    activeFaceCommentsUnsubscribe();
+    activeFaceCommentsUnsubscribe = null;
+  }
 
   // Use full uncropped image URL
   const fullImageUrl = getFullImageUrl(face.image);
@@ -389,9 +538,148 @@ function openDetails(face) {
         <div class="inspect-date-row">
           <span>Added on ${escapeHtml(dateString)}</span>
         </div>
+
+        <!-- Real-time Face Comments Section (Firestore) -->
+        <div class="face-comments-section" id="inspect-comments-section">
+          <div class="face-comments-header">
+            <h4>Comments (<span id="face-comments-count">0</span>)</h4>
+            <span class="face-comments-sub">Everyone can share thoughts!</span>
+          </div>
+
+          <div id="face-comments-list" class="face-comments-list">
+            <div class="chat-loading-placeholder">
+              <span class="spinner"></span>
+              <span>Loading comments...</span>
+            </div>
+          </div>
+
+          <form id="face-comment-form" class="face-comment-form">
+            <div class="comment-input-box">
+              <input
+                type="text"
+                id="face-comment-input"
+                class="input"
+                placeholder="Say something funny about ${escapeHtml(face.name)}..."
+                maxlength="280"
+                required
+                autocomplete="off"
+              >
+              <button type="submit" id="face-comment-submit" class="btn btn--primary btn--sm">Comment</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   `;
+
+  // Setup modal Like button state
+  if (detailLikeBtn) {
+    const isLiked = isFaceLiked(face.id);
+    const count = typeof face.likesCount === "number" ? face.likesCount : 0;
+    detailLikeCount.textContent = count;
+    detailLikeBtn.classList.toggle("liked", isLiked);
+    if (detailLikeText) detailLikeText.textContent = isLiked ? "Liked" : "Like";
+
+    // Replace onclick cleanly
+    detailLikeBtn.onclick = async () => {
+      try {
+        const newlyLiked = await toggleFaceLike(face.id);
+        let curr = parseInt(detailLikeCount.textContent, 10) || 0;
+        if (newlyLiked) {
+          detailLikeBtn.classList.add("liked");
+          if (detailLikeText) detailLikeText.textContent = "Liked";
+          detailLikeCount.textContent = curr + 1;
+          face.likesCount = curr + 1;
+          showToast(`Liked "${face.name}"! ❤️`, "success");
+        } else {
+          detailLikeBtn.classList.remove("liked");
+          if (detailLikeText) detailLikeText.textContent = "Like";
+          detailLikeCount.textContent = Math.max(0, curr - 1);
+          face.likesCount = Math.max(0, curr - 1);
+        }
+        // Update gallery card if present
+        const cardLikeBtn = document.querySelector(`.btn-card-like[data-face-id="${face.id}"]`);
+        if (cardLikeBtn) {
+          cardLikeBtn.classList.toggle("liked", newlyLiked);
+          cardLikeBtn.querySelector(".like-heart").textContent = newlyLiked ? "❤️" : "🤍";
+          cardLikeBtn.querySelector(".like-num").textContent = face.likesCount;
+        }
+      } catch (err) {
+        console.error("Modal like toggle failed:", err);
+        showToast("Unable to update like.", "error");
+      }
+    };
+  }
+
+  // Real-time comments listener for this face
+  const commentsListEl = dialogBody.querySelector("#face-comments-list");
+  const commentsCountEl = dialogBody.querySelector("#face-comments-count");
+  const commentFormEl = dialogBody.querySelector("#face-comment-form");
+  const commentInputEl = dialogBody.querySelector("#face-comment-input");
+
+  activeFaceCommentsUnsubscribe = subscribeToFaceComments(
+    face.id,
+    (comments) => {
+      commentsCountEl.textContent = comments.length;
+      face.commentsCount = comments.length;
+
+      // Update card comment counter in gallery
+      const cardCommentBtn = document.querySelector(`.btn-card-comment[data-face-id="${face.id}"]`);
+      if (cardCommentBtn) {
+        const numEl = cardCommentBtn.querySelector(".comment-num");
+        if (numEl) numEl.textContent = comments.length;
+      }
+
+      if (comments.length === 0) {
+        commentsListEl.innerHTML = `
+          <div style="text-align: center; padding: 20px 8px; color: var(--text-muted); font-size: 12.5px;">
+            <p style="margin: 0;">No comments on this face yet.</p>
+            <span style="font-size: 11.5px; color: var(--text-subtle);">Be the first to share a funny thought below!</span>
+          </div>
+        `;
+        return;
+      }
+
+      commentsListEl.innerHTML = comments
+        .map((c) => `
+          <div class="face-comment-item">
+            <span class="face-comment-avatar" aria-hidden="true">${escapeHtml(c.avatar || "🎭")}</span>
+            <div class="face-comment-content">
+              <div class="face-comment-author-row">
+                <span class="face-comment-author">${escapeHtml(c.sender || "Anonymous")}</span>
+                <span class="face-comment-time">${formatTimeAgo(c.createdAt)}</span>
+              </div>
+              <div class="face-comment-text">${escapeHtml(c.text)}</div>
+            </div>
+          </div>
+        `)
+        .join("");
+    },
+    (err) => {
+      commentsListEl.innerHTML = `<p style="color: var(--danger); font-size: 12px; margin: 0;">Failed to load comments: ${escapeHtml(err.message)}</p>`;
+    }
+  );
+
+  // Comment Form Submit Handler
+  commentFormEl.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = (commentInputEl.value || "").trim();
+    if (!text) return;
+
+    const submitBtn = dialogBody.querySelector("#face-comment-submit");
+    submitBtn.disabled = true;
+
+    try {
+      await addFaceComment(face.id, face.name, text);
+      commentInputEl.value = "";
+      showToast("Comment posted!", "success");
+    } catch (err) {
+      console.error("Posting comment failed:", err);
+      showToast("Failed to post comment. Please try again.", "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
 
   const imgEl = dialogBody.querySelector("#inspect-full-img");
   const loadingEl = dialogBody.querySelector("#inspect-loading");
@@ -434,9 +722,23 @@ function openDetails(face) {
   if (detailDeleteBtn) detailDeleteBtn.style.display = isAdmin ? "inline-flex" : "none";
 
   detailsDialog.showModal();
+
+  if (shouldFocusComments) {
+    setTimeout(() => {
+      const commentInput = dialogBody.querySelector("#face-comment-input");
+      if (commentInput) {
+        commentInput.focus();
+        commentInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 150);
+  }
 }
 
 function closeDetails() {
+  if (activeFaceCommentsUnsubscribe) {
+    activeFaceCommentsUnsubscribe();
+    activeFaceCommentsUnsubscribe = null;
+  }
   detailsDialog.close();
   activeFaceForDetails = null;
 }
@@ -857,6 +1159,267 @@ function handleAdminLogout() {
   showToast("Logged out of Admin Mode", "info");
 }
 
+// ==========================================================================
+// Live Chat, Face Comments & User Identity Management (Firestore only)
+// ==========================================================================
+
+function updateChatUserUI() {
+  if (chatUserAvatar) chatUserAvatar.textContent = currentUser.avatar;
+  if (chatUserName) chatUserName.textContent = currentUser.name;
+}
+
+function updateSoundButtonUI() {
+  if (chatSoundIcon) {
+    chatSoundIcon.textContent = soundEnabled ? "🔔" : "🔕";
+  }
+  if (chatSoundBtn) {
+    chatSoundBtn.title = soundEnabled ? "Notification sound is ON (click to mute)" : "Notification sound is MUTED (click to enable)";
+  }
+}
+
+// Render message cards in live chat feed
+function renderChatMessages(messages) {
+  if (!chatMessagesContainer) return;
+
+  if (chatCountPill) chatCountPill.textContent = messages.length;
+  if (headerChatBadge) {
+    headerChatBadge.textContent = messages.length;
+    headerChatBadge.style.display = messages.length > 0 ? "inline-block" : "none";
+  }
+  if (mobileChatBadge) {
+    mobileChatBadge.textContent = messages.length;
+    mobileChatBadge.style.display = messages.length > 0 ? "inline-block" : "none";
+  }
+
+  if (messages.length === 0) {
+    chatMessagesContainer.innerHTML = `
+      <div class="chat-empty-feed">
+        <span class="empty-chat-icon" aria-hidden="true">💬</span>
+        <strong style="color: var(--text);">No messages yet!</strong>
+        <p style="margin: 0; color: var(--text-subtle); font-size: 12px;">Be the first to say something funny or react below.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const isScrolledToBottom = (
+    chatMessagesContainer.scrollHeight - chatMessagesContainer.scrollTop <= chatMessagesContainer.clientHeight + 60
+  );
+
+  chatMessagesContainer.innerHTML = messages
+    .map((msg) => {
+      const isMyMsg = msg.sender === currentUser.name;
+      const isLiked = isMessageLiked(msg.id);
+      const likesCount = typeof msg.likes === "number" ? msg.likes : 0;
+      const timeStr = formatTimeAgo(msg.createdAt);
+
+      const faceTag = msg.faceName
+        ? `<button type="button" class="chat-msg-tag btn-inspect-tagged-face" data-face-id="${escapeHtml(msg.faceId || '')}" title="Inspect ${escapeHtml(msg.faceName)}">🎭 On: ${escapeHtml(msg.faceName)}</button>`
+        : "";
+
+      return `
+        <div class="chat-msg ${isMyMsg ? 'my-msg' : ''}" data-msg-id="${escapeHtml(msg.id)}">
+          <div class="chat-avatar" aria-hidden="true">${escapeHtml(msg.avatar || "🎭")}</div>
+          <div class="chat-msg-body">
+            <div class="chat-msg-header">
+              <span class="chat-msg-author">${escapeHtml(msg.sender || "Anonymous")}${isMyMsg ? ' (You)' : ''}</span>
+              <span class="chat-msg-time">${timeStr}</span>
+            </div>
+            ${faceTag}
+            <div class="chat-msg-text">${escapeHtml(msg.text)}</div>
+            <div class="chat-msg-footer">
+              <button type="button" class="chat-like-btn ${isLiked ? 'liked' : ''}" data-msg-id="${escapeHtml(msg.id)}" title="${isLiked ? 'Unlike' : 'Like'} this comment">
+                <span class="chat-like-heart" aria-hidden="true">${isLiked ? '❤️' : '🤍'}</span>
+                <span class="chat-like-count">${likesCount}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  // Attach click handlers to any tagged face chips
+  chatMessagesContainer.querySelectorAll(".btn-inspect-tagged-face").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-face-id");
+      const matchedFace = allFaces.find((f) => f.id === targetId);
+      if (matchedFace) {
+        openDetails(matchedFace);
+      }
+    });
+  });
+
+  // Auto-scroll to bottom if appropriate
+  if (!hasInitialChatLoaded || isScrolledToBottom) {
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+  }
+}
+
+// Live Chat Subscription
+function initLiveChatSubscription() {
+  updateChatUserUI();
+  updateSoundButtonUI();
+
+  subscribeToLiveChat(
+    (messages) => {
+      const isNewMessage = hasInitialChatLoaded && messages.length > 0;
+      if (isNewMessage) {
+        const latest = messages[messages.length - 1];
+        if (latest.sender !== currentUser.name) {
+          playNotificationSound();
+        }
+      }
+
+      renderChatMessages(messages);
+      hasInitialChatLoaded = true;
+    },
+    (err) => {
+      console.error("Live chat subscription error:", err);
+      if (chatMessagesContainer) {
+        chatMessagesContainer.innerHTML = `
+          <div class="chat-empty-feed">
+            <span style="color: var(--danger);">⚠️</span>
+            <p style="color: var(--danger); font-size: 12px; margin: 4px 0 0;">Live chat connecting...</p>
+          </div>
+        `;
+      }
+    }
+  );
+}
+
+// Send chat message
+async function handleSendChatMessage(e) {
+  if (e) e.preventDefault();
+  if (!chatInput) return;
+
+  const text = (chatInput.value || "").trim();
+  if (!text) return;
+
+  chatInput.value = "";
+  chatInput.focus();
+
+  try {
+    await sendChatMessage({ text });
+    // Smooth scroll to bottom
+    if (chatMessagesContainer) {
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }
+  } catch (err) {
+    console.error("Sending chat message failed:", err);
+    showToast("Failed to send message. Please try again.", "error");
+  }
+}
+
+// Mobile Chat Drawer Controls
+function openMobileChat() {
+  if (liveChatPanel) {
+    liveChatPanel.classList.add("mobile-open");
+  }
+  if (chatBackdrop) {
+    chatBackdrop.style.display = "block";
+  }
+  isMobileChatOpen = true;
+  document.body.style.overflow = "hidden";
+  setTimeout(() => {
+    if (chatMessagesContainer) {
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }
+  }, 100);
+}
+
+function closeMobileChat() {
+  if (liveChatPanel) {
+    liveChatPanel.classList.remove("mobile-open");
+  }
+  if (chatBackdrop) {
+    chatBackdrop.style.display = "none";
+  }
+  isMobileChatOpen = false;
+  document.body.style.overflow = "";
+}
+
+function toggleChatPanel() {
+  if (window.innerWidth <= 1024) {
+    if (isMobileChatOpen) {
+      closeMobileChat();
+    } else {
+      openMobileChat();
+    }
+  } else {
+    // Desktop collapse toggle
+    if (appSplitContainer) {
+      isChatPanelCollapsed = !isChatPanelCollapsed;
+      appSplitContainer.classList.toggle("chat-collapsed", isChatPanelCollapsed);
+      if (toggleChatHeaderBtn) {
+        toggleChatHeaderBtn.classList.toggle("btn--primary", isChatPanelCollapsed);
+      }
+    }
+  }
+}
+
+// Nickname & Avatar Picker Dialog
+function openNicknameModal() {
+  if (!nicknameDialog) return;
+  selectedAvatarChoice = currentUser.avatar;
+
+  if (avatarPickerGrid) {
+    avatarPickerGrid.innerHTML = FUNNY_AVATARS.map((av) => `
+      <button type="button" class="avatar-choice-btn ${av === selectedAvatarChoice ? 'selected' : ''}" data-avatar="${av}" title="Choose ${av}">
+        ${av}
+      </button>
+    `).join("");
+
+    avatarPickerGrid.querySelectorAll(".avatar-choice-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        avatarPickerGrid.querySelectorAll(".avatar-choice-btn").forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedAvatarChoice = btn.getAttribute("data-avatar");
+      });
+    });
+  }
+
+  if (nicknameInput) {
+    nicknameInput.value = currentUser.name;
+  }
+
+  nicknameDialog.showModal();
+}
+
+function closeNicknameModal() {
+  if (nicknameDialog) nicknameDialog.close();
+}
+
+function handleNicknameSubmit(e) {
+  e.preventDefault();
+  const name = (nicknameInput.value || "").trim();
+  if (!name) return;
+
+  currentUser = saveCurrentChatUser(name, selectedAvatarChoice);
+  updateChatUserUI();
+  closeNicknameModal();
+  showToast(`Profile updated to ${currentUser.avatar} ${currentUser.name}!`, "success");
+}
+
+function handleRandomizeNickname() {
+  const adjectives = ["Goofy", "Cheeky", "Chuckle", "Sneaky", "Jolly", "Silly", "Wobbly", "Quirky", "Snarky", "Witty"];
+  const nouns = ["Bob", "Potato", "Penguin", "Panda", "Muffin", "Pickle", "Badger", "Goblin", "Wombat", "Noodle"];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const num = Math.floor(100 + Math.random() * 900);
+  const randomAv = FUNNY_AVATARS[Math.floor(Math.random() * FUNNY_AVATARS.length)];
+
+  if (nicknameInput) nicknameInput.value = `${adj}${noun}${num}`;
+  selectedAvatarChoice = randomAv;
+
+  if (avatarPickerGrid) {
+    avatarPickerGrid.querySelectorAll(".avatar-choice-btn").forEach((b) => {
+      const isMatch = b.getAttribute("data-avatar") === randomAv;
+      b.classList.toggle("selected", isMatch);
+    });
+  }
+}
+
 // Register all Event Listeners
 function setupEventListeners() {
   addFaceBtn.addEventListener("click", () => openFormModal("create"));
@@ -868,6 +1431,84 @@ function setupEventListeners() {
   if (closeAdminDialogBtn) closeAdminDialogBtn.addEventListener("click", closeAdminModal);
   if (cancelAdminDialogBtn) cancelAdminDialogBtn.addEventListener("click", closeAdminModal);
   if (adminLoginForm) adminLoginForm.addEventListener("submit", handleAdminLoginSubmit);
+
+  // Live Chat Listeners
+  if (chatForm) chatForm.addEventListener("submit", handleSendChatMessage);
+
+  // Quick Reaction Emoji buttons
+  quickEmojiBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const emoji = btn.getAttribute("data-emoji");
+      if (chatInput) {
+        chatInput.value = (chatInput.value ? chatInput.value + " " : "") + emoji;
+        chatInput.focus();
+      }
+    });
+  });
+
+  // Chat message like click (event delegation)
+  if (chatMessagesContainer) {
+    chatMessagesContainer.addEventListener("click", async (e) => {
+      const likeBtn = e.target.closest(".chat-like-btn");
+      if (!likeBtn) return;
+      const msgId = likeBtn.getAttribute("data-msg-id");
+      if (!msgId) return;
+
+      try {
+        const newlyLiked = await toggleMessageLike(msgId);
+        const heartEl = likeBtn.querySelector(".chat-like-heart");
+        const countEl = likeBtn.querySelector(".chat-like-count");
+        let count = parseInt(countEl.textContent, 10) || 0;
+        likeBtn.classList.toggle("liked", newlyLiked);
+        if (heartEl) {
+          heartEl.textContent = newlyLiked ? "❤️" : "🤍";
+          if (newlyLiked) heartEl.classList.add("like-anim");
+        }
+        if (countEl) countEl.textContent = newlyLiked ? count + 1 : Math.max(0, count - 1);
+      } catch (err) {
+        console.error("Message like error:", err);
+      }
+    });
+  }
+
+  // Toggle Live Chat from Header and Mobile FAB
+  if (toggleChatHeaderBtn) toggleChatHeaderBtn.addEventListener("click", toggleChatPanel);
+  if (mobileChatFab) mobileChatFab.addEventListener("click", openMobileChat);
+  if (chatCloseMobileBtn) chatCloseMobileBtn.addEventListener("click", closeMobileChat);
+  if (chatBackdrop) chatBackdrop.addEventListener("click", closeMobileChat);
+
+  // Desktop Collapse Button
+  if (chatCollapseBtn) {
+    chatCollapseBtn.addEventListener("click", () => {
+      if (appSplitContainer) {
+        isChatPanelCollapsed = true;
+        appSplitContainer.classList.add("chat-collapsed");
+        if (toggleChatHeaderBtn) {
+          toggleChatHeaderBtn.classList.add("btn--primary");
+        }
+        showToast("Live chat panel collapsed. Click 💬 Live Chat in header to reopen anytime.", "info");
+      }
+    });
+  }
+
+  // Sound Toggle Button
+  if (chatSoundBtn) {
+    chatSoundBtn.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      try {
+        localStorage.setItem(STORAGE_KEY_SOUND, String(soundEnabled));
+      } catch {}
+      updateSoundButtonUI();
+      showToast(soundEnabled ? "Chat sound effects enabled 🔔" : "Chat sound muted 🔕", "info");
+    });
+  }
+
+  // User Profile / Nickname pill click
+  if (chatUserPill) chatUserPill.addEventListener("click", openNicknameModal);
+  if (closeNicknameDialogBtn) closeNicknameDialogBtn.addEventListener("click", closeNicknameModal);
+  if (cancelNicknameBtn) cancelNicknameBtn.addEventListener("click", closeNicknameModal);
+  if (nicknameForm) nicknameForm.addEventListener("submit", handleNicknameSubmit);
+  if (randomizeNicknameBtn) randomizeNicknameBtn.addEventListener("click", handleRandomizeNickname);
 
   // Bulk upload listeners
   if (bulkUploadBtn) bulkUploadBtn.addEventListener("click", openBulkModal);
@@ -943,7 +1584,7 @@ function setupEventListeners() {
   confirmDeleteBtn.addEventListener("click", handleDeleteConfirm);
 
   // Close dialog on backdrop click
-  [detailsDialog, faceFormDialog, deleteConfirmDialog, bulkUploadDialog, adminLoginDialog].forEach((dialog) => {
+  [detailsDialog, faceFormDialog, deleteConfirmDialog, bulkUploadDialog, adminLoginDialog, nicknameDialog].forEach((dialog) => {
     if (!dialog) return;
     dialog.addEventListener("click", (e) => {
       const rect = dialog.getBoundingClientRect();
@@ -954,7 +1595,11 @@ function setupEventListeners() {
         e.clientX <= rect.left + rect.width
       );
       if (!inDialog) {
-        dialog.close();
+        if (dialog === detailsDialog) {
+          closeDetails();
+        } else {
+          dialog.close();
+        }
       }
     });
   });
@@ -968,6 +1613,7 @@ function initApp() {
   checkConfiguration();
   setupEventListeners();
   updateAuthUI();
+  initLiveChatSubscription();
 
   subscribeToFaces(
     (faces) => {
@@ -985,3 +1631,4 @@ function initApp() {
 
 // Start
 initApp();
+

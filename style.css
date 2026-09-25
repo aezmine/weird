@@ -204,17 +204,34 @@ img {
 }
 
 .masthead-info h1 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
   margin: 0;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-web-tag {
+  font-size: 0.48em;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #ffffff;
+  display: inline-block;
+  box-shadow: 0 2px 8px rgba(124, 92, 252, 0.4);
 }
 
 .masthead-info p {
   font-size: 0.95rem;
   color: var(--text-muted);
   margin: 4px 0 0;
+  letter-spacing: -0.01em;
 }
 
 .masthead-actions {

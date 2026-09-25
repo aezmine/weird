@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Funny Faces — A Collection of Questionable Expressions</title>
-  <meta name="description" content="A curated directory of hilarious faces and expressions powered by Firestore, Cloudinary, and modern vanilla JavaScript.">
+  <title>MinWTF web</title>
+  <meta name="description" content="MinWTF web — weird faces, questionable expressions, and real-time live chat.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -38,20 +38,20 @@
     <header class="masthead">
       <div class="masthead-info">
         <div class="brand-row">
-          <span class="brand-icon" aria-hidden="true">🎭</span>
-          <h1>Funny Faces</h1>
+          <span class="brand-icon" aria-hidden="true">👽</span>
+          <h1>MinWTF <span class="brand-web-tag">web</span></h1>
         </div>
-        <p>A collection of the internet's most questionable facial expressions.</p>
+        <p>unhinged faces, weird moments & live banter</p>
       </div>
       <div class="masthead-actions">
         <div id="admin-auth-bar" class="admin-auth-bar">
           <button id="admin-login-btn" class="btn btn--ghost btn--sm" title="Admin Login">
-            <span aria-hidden="true">🔒</span> Admin Login
+            <span aria-hidden="true">🔒</span> Admin
           </button>
           <div id="admin-status-pill" class="admin-status-pill" style="display: none;">
             <span class="admin-dot" aria-hidden="true"></span>
-            <span class="admin-label">Admin Mode</span>
-            <button id="admin-logout-btn" class="btn btn--ghost btn--xs" title="Log out of Admin Mode">Logout</button>
+            <span class="admin-label">Admin</span>
+            <button id="admin-logout-btn" class="btn btn--ghost btn--xs" title="Log out">Logout</button>
           </div>
         </div>
         <button id="toggle-chat-header-btn" class="btn btn--secondary btn-chat-toggle" title="Toggle Live Chat">
@@ -59,11 +59,11 @@
           <span>💬 Live Chat</span>
           <span id="header-chat-badge" class="header-chat-badge" style="display: none;">0</span>
         </button>
-        <button id="bulk-upload-btn" class="btn btn--secondary" title="Upload multiple funny photos at once">
+        <button id="bulk-upload-btn" class="btn btn--secondary" title="Upload multiple photos">
           <span aria-hidden="true">📁</span> Bulk Upload
         </button>
         <button id="add-face-btn" class="btn btn--primary">
-          <span aria-hidden="true">＋</span> Add Funny Face
+          <span aria-hidden="true">＋</span> Add Face
         </button>
       </div>
     </header>
@@ -84,7 +84,7 @@
         <div class="gallery-controls">
           <div class="search-box">
             <span class="search-icon" aria-hidden="true">🔍</span>
-            <input type="search" id="search-input" class="search-input" placeholder="Search faces by name, expression, or caption..." autocomplete="off">
+            <input type="search" id="search-input" class="search-input" placeholder="Search faces, moods, captions..." autocomplete="off">
           </div>
           <div class="stats-count" id="faces-counter">Loading faces...</div>
         </div>
@@ -135,18 +135,18 @@
           <!-- Empty State -->
           <div id="empty-state" class="empty-state" style="display: none;">
             <div class="empty-icon" aria-hidden="true">😶</div>
-            <h2>No funny faces yet</h2>
-            <p>Your gallery is currently empty. Add your first funny face or upload in bulk.</p>
+            <h2>The vault is empty</h2>
+            <p>Drop some weird faces or bulk upload photos to get things started.</p>
             <div class="empty-actions">
               <button id="empty-bulk-btn" class="btn btn--secondary">📁 Bulk Upload</button>
-              <button id="empty-add-btn" class="btn btn--primary">＋ Add Funny Face</button>
+              <button id="empty-add-btn" class="btn btn--primary">＋ Add Face</button>
             </div>
           </div>
         </main>
 
         <!-- App Footer -->
         <footer class="app-footer">
-          <p>effortless developed by min</p>
+          <p>MinWTF web · effortless by min</p>
         </footer>
       </div>
 

@@ -20,11 +20,11 @@ export const STORAGE_KEY_LIKED_FACES = "funny_faces_liked_faces";
 export const STORAGE_KEY_LIKED_MSGS = "funny_faces_liked_msgs";
 export const STORAGE_KEY_SOUND = "funny_faces_chat_sound_enabled";
 
-// Predefined funny avatars
-export const FUNNY_AVATARS = ["🤪", "😎", "🐱", "🦊", "🐸", "🐻", "🦁", "🐵", "🤖", "🎭", "🤠", "👻"];
+// Predefined vector avatar keys
+export const FUNNY_AVATARS = ["alien", "ghost", "bot", "skull", "zap", "flame", "laugh", "crown", "swords", "cat", "spark", "smile"];
 
-const FUNNY_ADJECTIVES = ["Goofy", "Cheeky", "Chuckle", "Sneaky", "Jolly", "Silly", "Wobbly", "Quirky", "Snarky", "Witty"];
-const FUNNY_NOUNS = ["Bob", "Potato", "Penguin", "Panda", "Muffin", "Pickle", "Badger", "Goblin", "Wombat", "Noodle"];
+const FUNNY_ADJECTIVES = ["Sneaky", "Quirky", "Witty", "Rogue", "Spicy", "Cosmic", "Chill", "Hyper", "Slick", "Wild"];
+const FUNNY_NOUNS = ["Bob", "Nova", "Glitch", "Byte", "Pixel", "Fox", "Viper", "Echo", "Shadow", "Rider"];
 
 /**
  * Get or initialize persistent user identity for chat & comments.
@@ -34,7 +34,14 @@ export function getCurrentChatUser() {
     const saved = localStorage.getItem(STORAGE_KEY_USER);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.name && parsed.avatar) return parsed;
+      if (parsed && parsed.name && parsed.avatar) {
+        // If saved avatar was an old emoji, migrate it to a modern avatar key
+        if (!FUNNY_AVATARS.includes(parsed.avatar)) {
+          parsed.avatar = "alien";
+          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(parsed));
+        }
+        return parsed;
+      }
     }
   } catch {}
 
@@ -61,7 +68,7 @@ export function getCurrentChatUser() {
 export function saveCurrentChatUser(name, avatar) {
   const user = {
     name: (name || "Anonymous").trim().slice(0, 25),
-    avatar: avatar || "🎭"
+    avatar: avatar || "alien"
   };
   try {
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));

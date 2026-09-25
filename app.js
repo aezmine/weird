@@ -23,6 +23,7 @@ import {
   FUNNY_AVATARS,
   STORAGE_KEY_SOUND
 } from "./services/chat-service.js";
+import { icon, renderAvatarSvg, AVATAR_OPTIONS } from "./services/icons.js";
 
 // Admin Auth State & Config
 const ADMIN_ACCESS_CODE = "minmin321";
@@ -315,11 +316,11 @@ function renderCards(facesToRender) {
     const socialControls = `
       <div class="card-social-actions">
         <button type="button" class="btn-card-like ${isLiked ? 'liked' : ''}" data-face-id="${escapeHtml(face.id)}" title="${isLiked ? 'Unlike' : 'Like'} this face" aria-label="Like ${escapeHtml(face.name)}">
-          <span class="like-heart" aria-hidden="true">${isLiked ? '❤️' : '🤍'}</span>
+          <span class="like-heart" aria-hidden="true">${isLiked ? icon('heartFilled', { size: 14 }) : icon('heartOutline', { size: 14 })}</span>
           <span class="like-num">${likesCount}</span>
         </button>
         <button type="button" class="btn-card-comment" data-face-id="${escapeHtml(face.id)}" title="View and write comments" aria-label="Comments for ${escapeHtml(face.name)}">
-          <span aria-hidden="true">💬</span>
+          <span aria-hidden="true">${icon('messageCircle', { size: 14 })}</span>
           <span class="comment-num">${commentsCount}</span>
         </button>
       </div>
@@ -329,8 +330,8 @@ function renderCards(facesToRender) {
       ? `
         <button type="button" class="btn btn--secondary btn--sm btn-detail">Inspect</button>
         ${socialControls}
-        <button type="button" class="btn-icon btn-edit" title="Edit face" aria-label="Edit ${escapeHtml(face.name)}">✏️</button>
-        <button type="button" class="btn-icon btn-delete" title="Delete face" aria-label="Delete ${escapeHtml(face.name)}">🗑️</button>
+        <button type="button" class="btn-icon btn-edit" title="Edit face" aria-label="Edit ${escapeHtml(face.name)}">${icon('pencil', { size: 13 })}</button>
+        <button type="button" class="btn-icon btn-delete" title="Delete face" aria-label="Delete ${escapeHtml(face.name)}">${icon('trash', { size: 13 })}</button>
       `
       : `
         <button type="button" class="btn btn--secondary btn--sm btn-detail">Inspect</button>
@@ -342,7 +343,7 @@ function renderCards(facesToRender) {
         <img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(face.name)}" loading="lazy" width="280" height="210">
         <div class="card-badges">
           <span class="badge badge-category" title="${escapeHtml(face.expression || 'Funny')}">${escapeHtml(face.expression || 'Funny')}</span>
-          <span class="badge badge-score" title="Rating">★ ${escapeHtml(face.funnyScore || '0')}</span>
+          <span class="badge badge-score" title="Rating">${icon('star', { size: 11 })} ${escapeHtml(face.funnyScore || '0')}</span>
         </div>
       </div>
       <div class="card-content">
@@ -372,14 +373,14 @@ function renderCards(facesToRender) {
           let current = parseInt(numEl.textContent, 10) || 0;
           if (newlyLiked) {
             cardLikeBtn.classList.add("liked");
-            heartEl.textContent = "❤️";
+            heartEl.innerHTML = icon('heartFilled', { size: 14 });
             heartEl.classList.add("like-anim");
             numEl.textContent = current + 1;
             face.likesCount = current + 1;
-            showToast(`Liked "${face.name}"! ❤️`, "success");
+            showToast(`Liked "${face.name}"!`, "success");
           } else {
             cardLikeBtn.classList.remove("liked");
-            heartEl.textContent = "🤍";
+            heartEl.innerHTML = icon('heartOutline', { size: 14 });
             heartEl.classList.remove("like-anim");
             numEl.textContent = Math.max(0, current - 1);
             face.likesCount = Math.max(0, current - 1);
@@ -518,7 +519,7 @@ function openDetails(face, shouldFocusComments = false) {
           style="display: none;"
         >
         <div class="inspect-img-error" id="inspect-error" style="display: none;">
-          <span style="font-size: 22px;" aria-hidden="true">⚠️</span>
+          <span style="display: inline-flex;" aria-hidden="true">${icon('alertTriangle', { size: 24 })}</span>
           <p style="margin: 4px 0 10px; font-size: 13px; color: var(--text-muted);">Unable to load image</p>
           <button type="button" class="btn btn--secondary btn--sm" id="inspect-retry-btn">Retry</button>
         </div>
@@ -526,7 +527,7 @@ function openDetails(face, shouldFocusComments = false) {
       <div class="inspect-meta">
         <div class="inspect-badges">
           <span class="badge badge-category">${escapeHtml(face.expression || "Funny")}</span>
-          <span class="badge badge-score">★ ${escapeHtml(face.funnyScore || "0")} / 10</span>
+          <span class="badge badge-score">${icon('star', { size: 11 })} ${escapeHtml(face.funnyScore || "0")} / 10</span>
         </div>
         ${face.caption ? `<div class="inspect-quote">"${escapeHtml(face.caption)}"</div>` : ""}
         ${face.backstory ? `
@@ -579,6 +580,10 @@ function openDetails(face, shouldFocusComments = false) {
     detailLikeCount.textContent = count;
     detailLikeBtn.classList.toggle("liked", isLiked);
     if (detailLikeText) detailLikeText.textContent = isLiked ? "Liked" : "Like";
+    const heartIconEl = detailLikeBtn.querySelector(".heart-icon");
+    if (heartIconEl) {
+      heartIconEl.innerHTML = isLiked ? icon('heartFilled', { size: 14 }) : icon('heartOutline', { size: 14 });
+    }
 
     // Replace onclick cleanly
     detailLikeBtn.onclick = async () => {
@@ -588,12 +593,14 @@ function openDetails(face, shouldFocusComments = false) {
         if (newlyLiked) {
           detailLikeBtn.classList.add("liked");
           if (detailLikeText) detailLikeText.textContent = "Liked";
+          if (heartIconEl) heartIconEl.innerHTML = icon('heartFilled', { size: 14 });
           detailLikeCount.textContent = curr + 1;
           face.likesCount = curr + 1;
-          showToast(`Liked "${face.name}"! ❤️`, "success");
+          showToast(`Liked "${face.name}"!`, "success");
         } else {
           detailLikeBtn.classList.remove("liked");
           if (detailLikeText) detailLikeText.textContent = "Like";
+          if (heartIconEl) heartIconEl.innerHTML = icon('heartOutline', { size: 14 });
           detailLikeCount.textContent = Math.max(0, curr - 1);
           face.likesCount = Math.max(0, curr - 1);
         }
@@ -601,7 +608,7 @@ function openDetails(face, shouldFocusComments = false) {
         const cardLikeBtn = document.querySelector(`.btn-card-like[data-face-id="${face.id}"]`);
         if (cardLikeBtn) {
           cardLikeBtn.classList.toggle("liked", newlyLiked);
-          cardLikeBtn.querySelector(".like-heart").textContent = newlyLiked ? "❤️" : "🤍";
+          cardLikeBtn.querySelector(".like-heart").innerHTML = newlyLiked ? icon('heartFilled', { size: 14 }) : icon('heartOutline', { size: 14 });
           cardLikeBtn.querySelector(".like-num").textContent = face.likesCount;
         }
       } catch (err) {
@@ -634,7 +641,7 @@ function openDetails(face, shouldFocusComments = false) {
         commentsListEl.innerHTML = `
           <div style="text-align: center; padding: 20px 8px; color: var(--text-muted); font-size: 12.5px;">
             <p style="margin: 0;">No comments on this face yet.</p>
-            <span style="font-size: 11.5px; color: var(--text-subtle);">Be the first to share a funny thought below!</span>
+            <span style="font-size: 11.5px; color: var(--text-subtle);">Be the first to share a thought below!</span>
           </div>
         `;
         return;
@@ -643,13 +650,13 @@ function openDetails(face, shouldFocusComments = false) {
       commentsListEl.innerHTML = comments
         .map((c) => `
           <div class="face-comment-item">
-            <span class="face-comment-avatar" aria-hidden="true">${escapeHtml(c.avatar || "🎭")}</span>
+            <span class="face-comment-avatar" aria-hidden="true">${renderAvatarSvg(c.avatar, 20)}</span>
             <div class="face-comment-content">
               <div class="face-comment-author-row">
                 <span class="face-comment-author">${escapeHtml(c.sender || "Anonymous")}</span>
                 <span class="face-comment-time">${formatTimeAgo(c.createdAt)}</span>
               </div>
-              <div class="face-comment-text">${escapeHtml(c.text)}</div>
+              <div class="face-comment-text">${formatRichText(c.text)}</div>
             </div>
           </div>
         `)
@@ -1164,17 +1171,52 @@ function handleAdminLogout() {
 // ==========================================================================
 
 function updateChatUserUI() {
-  if (chatUserAvatar) chatUserAvatar.textContent = currentUser.avatar;
+  if (chatUserAvatar) chatUserAvatar.innerHTML = renderAvatarSvg(currentUser.avatar, 18);
   if (chatUserName) chatUserName.textContent = currentUser.name;
 }
 
 function updateSoundButtonUI() {
   if (chatSoundIcon) {
-    chatSoundIcon.textContent = soundEnabled ? "🔔" : "🔕";
+    chatSoundIcon.innerHTML = soundEnabled ? icon("bell", { size: 14 }) : icon("bellOff", { size: 14 });
   }
   if (chatSoundBtn) {
     chatSoundBtn.title = soundEnabled ? "Notification sound is ON (click to mute)" : "Notification sound is MUTED (click to enable)";
   }
+}
+
+// Convert emoji shortcodes and legacy emoji characters into inline vector SVG badges
+function formatRichText(rawText) {
+  if (!rawText) return "";
+  let escaped = escapeHtml(rawText);
+
+  const REACTION_MAP = [
+    { key: ":flame:", svg: icon("flame", { size: 14, className: "inline-icon icon-flame" }) },
+    { key: ":zap:", svg: icon("zap", { size: 14, className: "inline-icon icon-zap" }) },
+    { key: ":skull:", svg: icon("skull", { size: 14, className: "inline-icon icon-skull" }) },
+    { key: ":heart:", svg: icon("heartFilled", { size: 14, className: "inline-icon icon-heart" }) },
+    { key: ":laugh:", svg: icon("laugh", { size: 14, className: "inline-icon icon-laugh" }) },
+    { key: ":thumbsup:", svg: icon("thumbsUp", { size: 14, className: "inline-icon icon-thumbs" }) },
+    { key: ":spark:", svg: icon("spark", { size: 14, className: "inline-icon icon-spark" }) },
+    { key: "🔥", svg: icon("flame", { size: 14, className: "inline-icon icon-flame" }) },
+    { key: "⚡", svg: icon("zap", { size: 14, className: "inline-icon icon-zap" }) },
+    { key: "💀", svg: icon("skull", { size: 14, className: "inline-icon icon-skull" }) },
+    { key: "❤️", svg: icon("heartFilled", { size: 14, className: "inline-icon icon-heart" }) },
+    { key: "🤍", svg: icon("heartOutline", { size: 14, className: "inline-icon icon-heart" }) },
+    { key: "😆", svg: icon("laugh", { size: 14, className: "inline-icon icon-laugh" }) },
+    { key: "😂", svg: icon("laugh", { size: 14, className: "inline-icon icon-laugh" }) },
+    { key: "👍", svg: icon("thumbsUp", { size: 14, className: "inline-icon icon-thumbs" }) },
+    { key: "✨", svg: icon("spark", { size: 14, className: "inline-icon icon-spark" }) },
+    { key: "💬", svg: icon("messageCircle", { size: 14, className: "inline-icon icon-chat" }) },
+    { key: "🎭", svg: icon("alien", { size: 14, className: "inline-icon icon-alien" }) }
+  ];
+
+  for (const item of REACTION_MAP) {
+    if (escaped.includes(item.key)) {
+      escaped = escaped.split(item.key).join(`<span class="inline-svg-badge" aria-hidden="true">${item.svg}</span>`);
+    }
+  }
+
+  return escaped;
 }
 
 // Render message cards in live chat feed
@@ -1194,7 +1236,7 @@ function renderChatMessages(messages) {
   if (messages.length === 0) {
     chatMessagesContainer.innerHTML = `
       <div class="chat-empty-feed">
-        <span class="empty-chat-icon" aria-hidden="true">💬</span>
+        <span class="empty-chat-icon" aria-hidden="true">${icon("messageCircle", { size: 28 })}</span>
         <strong style="color: var(--text);">No messages yet!</strong>
         <p style="margin: 0; color: var(--text-subtle); font-size: 12px;">Be the first to say something funny or react below.</p>
       </div>
@@ -1214,22 +1256,22 @@ function renderChatMessages(messages) {
       const timeStr = formatTimeAgo(msg.createdAt);
 
       const faceTag = msg.faceName
-        ? `<button type="button" class="chat-msg-tag btn-inspect-tagged-face" data-face-id="${escapeHtml(msg.faceId || '')}" title="Inspect ${escapeHtml(msg.faceName)}">🎭 On: ${escapeHtml(msg.faceName)}</button>`
+        ? `<button type="button" class="chat-msg-tag btn-inspect-tagged-face" data-face-id="${escapeHtml(msg.faceId || '')}" title="Inspect ${escapeHtml(msg.faceName)}">${icon("tag", { size: 11 })} ${escapeHtml(msg.faceName)}</button>`
         : "";
 
       return `
         <div class="chat-msg ${isMyMsg ? 'my-msg' : ''}" data-msg-id="${escapeHtml(msg.id)}">
-          <div class="chat-avatar" aria-hidden="true">${escapeHtml(msg.avatar || "🎭")}</div>
+          <div class="chat-avatar" aria-hidden="true">${renderAvatarSvg(msg.avatar, 18)}</div>
           <div class="chat-msg-body">
             <div class="chat-msg-header">
               <span class="chat-msg-author">${escapeHtml(msg.sender || "Anonymous")}${isMyMsg ? ' (You)' : ''}</span>
               <span class="chat-msg-time">${timeStr}</span>
             </div>
             ${faceTag}
-            <div class="chat-msg-text">${escapeHtml(msg.text)}</div>
+            <div class="chat-msg-text">${formatRichText(msg.text)}</div>
             <div class="chat-msg-footer">
               <button type="button" class="chat-like-btn ${isLiked ? 'liked' : ''}" data-msg-id="${escapeHtml(msg.id)}" title="${isLiked ? 'Unlike' : 'Like'} this comment">
-                <span class="chat-like-heart" aria-hidden="true">${isLiked ? '❤️' : '🤍'}</span>
+                <span class="chat-like-heart" aria-hidden="true">${isLiked ? icon('heartFilled', { size: 12 }) : icon('heartOutline', { size: 12 })}</span>
                 <span class="chat-like-count">${likesCount}</span>
               </button>
             </div>
@@ -1279,7 +1321,7 @@ function initLiveChatSubscription() {
       if (chatMessagesContainer) {
         chatMessagesContainer.innerHTML = `
           <div class="chat-empty-feed">
-            <span style="color: var(--danger);">⚠️</span>
+            <span style="color: var(--danger);">${icon("alertTriangle", { size: 24 })}</span>
             <p style="color: var(--danger); font-size: 12px; margin: 4px 0 0;">Live chat connecting...</p>
           </div>
         `;
@@ -1364,9 +1406,10 @@ function openNicknameModal() {
   selectedAvatarChoice = currentUser.avatar;
 
   if (avatarPickerGrid) {
-    avatarPickerGrid.innerHTML = FUNNY_AVATARS.map((av) => `
-      <button type="button" class="avatar-choice-btn ${av === selectedAvatarChoice ? 'selected' : ''}" data-avatar="${av}" title="Choose ${av}">
-        ${av}
+    avatarPickerGrid.innerHTML = AVATAR_OPTIONS.map((av) => `
+      <button type="button" class="avatar-choice-btn ${av.id === selectedAvatarChoice ? 'selected' : ''}" data-avatar="${av.id}" title="Choose ${av.label}">
+        ${renderAvatarSvg(av.id, 20)}
+        <span class="avatar-choice-label">${av.label}</span>
       </button>
     `).join("");
 
@@ -1398,7 +1441,7 @@ function handleNicknameSubmit(e) {
   currentUser = saveCurrentChatUser(name, selectedAvatarChoice);
   updateChatUserUI();
   closeNicknameModal();
-  showToast(`Profile updated to ${currentUser.avatar} ${currentUser.name}!`, "success");
+  showToast(`Profile updated to ${currentUser.name}!`, "success");
 }
 
 function handleRandomizeNickname() {
@@ -1407,7 +1450,7 @@ function handleRandomizeNickname() {
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
   const num = Math.floor(100 + Math.random() * 900);
-  const randomAv = FUNNY_AVATARS[Math.floor(Math.random() * FUNNY_AVATARS.length)];
+  const randomAv = AVATAR_OPTIONS[Math.floor(Math.random() * AVATAR_OPTIONS.length)].id;
 
   if (nicknameInput) nicknameInput.value = `${adj}${noun}${num}`;
   selectedAvatarChoice = randomAv;
@@ -1435,12 +1478,12 @@ function setupEventListeners() {
   // Live Chat Listeners
   if (chatForm) chatForm.addEventListener("submit", handleSendChatMessage);
 
-  // Quick Reaction Emoji buttons
+  // Quick Reaction Icon buttons
   quickEmojiBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const emoji = btn.getAttribute("data-emoji");
-      if (chatInput) {
-        chatInput.value = (chatInput.value ? chatInput.value + " " : "") + emoji;
+      const reaction = btn.getAttribute("data-reaction") || btn.getAttribute("data-emoji");
+      if (chatInput && reaction) {
+        chatInput.value = (chatInput.value ? chatInput.value + " " : "") + reaction;
         chatInput.focus();
       }
     });
@@ -1461,7 +1504,7 @@ function setupEventListeners() {
         let count = parseInt(countEl.textContent, 10) || 0;
         likeBtn.classList.toggle("liked", newlyLiked);
         if (heartEl) {
-          heartEl.textContent = newlyLiked ? "❤️" : "🤍";
+          heartEl.innerHTML = newlyLiked ? icon("heartFilled", { size: 12 }) : icon("heartOutline", { size: 12 });
           if (newlyLiked) heartEl.classList.add("like-anim");
         }
         if (countEl) countEl.textContent = newlyLiked ? count + 1 : Math.max(0, count - 1);
@@ -1486,7 +1529,7 @@ function setupEventListeners() {
         if (toggleChatHeaderBtn) {
           toggleChatHeaderBtn.classList.add("btn--primary");
         }
-        showToast("Live chat panel collapsed. Click 💬 Live Chat in header to reopen anytime.", "info");
+        showToast("Live chat panel collapsed. Click Live Chat in header to reopen anytime.", "info");
       }
     });
   }
@@ -1499,7 +1542,7 @@ function setupEventListeners() {
         localStorage.setItem(STORAGE_KEY_SOUND, String(soundEnabled));
       } catch {}
       updateSoundButtonUI();
-      showToast(soundEnabled ? "Chat sound effects enabled 🔔" : "Chat sound muted 🔕", "info");
+      showToast(soundEnabled ? "Chat sound effects enabled" : "Chat sound muted", "info");
     });
   }
 

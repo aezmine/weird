@@ -38,7 +38,9 @@
     <header class="masthead">
       <div class="masthead-info">
         <div class="brand-row">
-          <span class="brand-icon" aria-hidden="true">👽</span>
+          <span class="brand-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5 4 12 8 12s8-7 8-12a8 8 0 0 0-8-8z"/><path d="M9 10a1.5 1.5 0 0 0-1.5 1.5c0 1 1 2 2 1.5"/><path d="M15 10a1.5 1.5 0 0 1 1.5 1.5c0 1-1 2-2 1.5"/><path d="M11 16h2"/></svg>
+          </span>
           <h1>MinWTF <span class="brand-web-tag">web</span></h1>
         </div>
         <p>unhinged faces, weird moments & live banter</p>
@@ -46,7 +48,8 @@
       <div class="masthead-actions">
         <div id="admin-auth-bar" class="admin-auth-bar">
           <button id="admin-login-btn" class="btn btn--ghost btn--sm" title="Admin Login">
-            <span aria-hidden="true">🔒</span> Admin
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Admin</span>
           </button>
           <div id="admin-status-pill" class="admin-status-pill" style="display: none;">
             <span class="admin-dot" aria-hidden="true"></span>
@@ -56,14 +59,17 @@
         </div>
         <button id="toggle-chat-header-btn" class="btn btn--secondary btn-chat-toggle" title="Toggle Live Chat">
           <span class="live-dot-inline" aria-hidden="true"></span>
-          <span>💬 Live Chat</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Live Chat</span>
           <span id="header-chat-badge" class="header-chat-badge" style="display: none;">0</span>
         </button>
         <button id="bulk-upload-btn" class="btn btn--secondary" title="Upload multiple photos">
-          <span aria-hidden="true">📁</span> Bulk Upload
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M12 10v6"/><path d="m9 13 3-3 3 3"/></svg>
+          <span>Bulk Upload</span>
         </button>
         <button id="add-face-btn" class="btn btn--primary">
-          <span aria-hidden="true">＋</span> Add Face
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          <span>Add Face</span>
         </button>
       </div>
     </header>
@@ -83,7 +89,9 @@
         <!-- Gallery Controls (Search Bar & Count) -->
         <div class="gallery-controls">
           <div class="search-box">
-            <span class="search-icon" aria-hidden="true">🔍</span>
+            <span class="search-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
             <input type="search" id="search-input" class="search-input" placeholder="Search faces, moods, captions..." autocomplete="off">
           </div>
           <div class="stats-count" id="faces-counter">Loading faces...</div>
@@ -134,12 +142,20 @@
 
           <!-- Empty State -->
           <div id="empty-state" class="empty-state" style="display: none;">
-            <div class="empty-icon" aria-hidden="true">😶</div>
+            <div class="empty-icon" aria-hidden="true">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            </div>
             <h2>The vault is empty</h2>
             <p>Drop some weird faces or bulk upload photos to get things started.</p>
             <div class="empty-actions">
-              <button id="empty-bulk-btn" class="btn btn--secondary">📁 Bulk Upload</button>
-              <button id="empty-add-btn" class="btn btn--primary">＋ Add Face</button>
+              <button id="empty-bulk-btn" class="btn btn--secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M12 10v6"/><path d="m9 13 3-3 3 3"/></svg>
+                <span>Bulk Upload</span>
+              </button>
+              <button id="empty-add-btn" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                <span>Add Face</span>
+              </button>
             </div>
           </div>
         </main>
@@ -165,15 +181,17 @@
           <div class="chat-header-controls">
             <!-- Sound Toggle -->
             <button type="button" id="chat-sound-btn" class="chat-btn-icon" title="Toggle notification sound" aria-label="Toggle chat sound">
-              <span id="chat-sound-icon">🔔</span>
+              <span id="chat-sound-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              </span>
             </button>
             <!-- Desktop Collapse Toggle -->
             <button type="button" id="chat-collapse-btn" class="chat-btn-icon chat-collapse-desktop-btn" title="Collapse live chat panel" aria-label="Collapse live chat">
-              ✕
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
             <!-- Mobile Close Button -->
             <button type="button" id="chat-close-mobile-btn" class="chat-btn-icon chat-close-mobile-btn" title="Close chat" aria-label="Close chat">
-              ✕
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
           </div>
         </div>
@@ -182,7 +200,7 @@
         <div class="chat-user-strip">
           <span class="strip-label">Chatting as:</span>
           <button type="button" id="chat-user-pill" class="chat-user-pill" title="Click to customize nickname & avatar">
-            <span id="chat-user-avatar" class="user-avatar-tag">🤪</span>
+            <span id="chat-user-avatar" class="user-avatar-tag"></span>
             <span id="chat-user-name" class="user-name-tag">Guest</span>
             <span class="edit-pill-badge">Edit</span>
           </button>
@@ -196,15 +214,29 @@
           </div>
         </div>
 
-        <!-- Chat Quick Reaction Bar -->
+        <!-- Chat Quick Reaction Bar (Clean Vector Icons) -->
         <div class="chat-quick-emojis" aria-label="Quick reactions">
-          <button type="button" class="quick-emoji-btn" data-emoji="😂" title="React with 😂">😂</button>
-          <button type="button" class="quick-emoji-btn" data-emoji="💀" title="React with 💀">💀</button>
-          <button type="button" class="quick-emoji-btn" data-emoji="🤣" title="React with 🤣">🤣</button>
-          <button type="button" class="quick-emoji-btn" data-emoji="👏" title="React with 👏">👏</button>
-          <button type="button" class="quick-emoji-btn" data-emoji="🔥" title="React with 🔥">🔥</button>
-          <button type="button" class="quick-emoji-btn" data-emoji="❤️" title="React with ❤️">❤️</button>
-          <button type="button" class="quick-emoji-btn" data-emoji="💯" title="React with 💯">💯</button>
+          <button type="button" class="quick-emoji-btn" data-reaction=":flame:" title="Flame">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+          </button>
+          <button type="button" class="quick-emoji-btn" data-reaction=":zap:" title="Volt">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </button>
+          <button type="button" class="quick-emoji-btn" data-reaction=":skull:" title="Skull">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1"/><path d="M16 20a3 3 0 0 0 1.56-4.52A8 8 0 1 0 6.44 15.5 3 3 0 0 0 8 20"/></svg>
+          </button>
+          <button type="button" class="quick-emoji-btn" data-reaction=":heart:" title="Love">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          </button>
+          <button type="button" class="quick-emoji-btn" data-reaction=":laugh:" title="Laugh">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M18 13a6 6 0 0 1-12 0Z"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          </button>
+          <button type="button" class="quick-emoji-btn" data-reaction=":thumbsup:" title="Thumbs Up">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3"/><path d="M14 10V4.5a2.5 2.5 0 0 0-5 0V10"/></svg>
+          </button>
+          <button type="button" class="quick-emoji-btn" data-reaction=":spark:" title="Spark">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+          </button>
         </div>
 
         <!-- Chat Input Form -->
@@ -214,7 +246,7 @@
               type="text"
               id="chat-input"
               class="chat-text-input"
-              placeholder="Say something funny..."
+              placeholder="Drop a thought or reaction..."
               autocomplete="off"
               maxlength="280"
               required
@@ -237,14 +269,19 @@
     <div class="dialog-content">
       <div class="dialog-header">
         <h3 id="detail-title">Face Details</h3>
-        <button id="close-dialog-btn" class="btn-icon" aria-label="Close dialog">✕</button>
+        <button id="close-dialog-btn" class="btn-icon" aria-label="Close dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
       </div>
       <div id="dialog-body" class="dialog-body">
         <!-- Populated dynamically -->
       </div>
       <div class="dialog-footer">
         <button type="button" id="detail-like-btn" class="btn btn--secondary btn-detail-like" title="Like this face">
-          <span class="heart-icon">❤️</span> <span id="detail-like-text">Like</span> (<span id="detail-like-count">0</span>)
+          <span class="heart-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          </span>
+          <span id="detail-like-text">Like</span> (<span id="detail-like-count">0</span>)
         </button>
         <div style="flex: 1;"></div>
         <button id="detail-delete-btn" class="btn btn--danger">Delete</button>
@@ -258,8 +295,10 @@
   <dialog id="face-form-dialog" class="app-dialog modal-md">
     <div class="dialog-content">
       <div class="dialog-header">
-        <h3 id="form-dialog-title">Add Funny Face</h3>
-        <button id="close-form-btn" class="btn-icon" aria-label="Close form">✕</button>
+        <h3 id="form-dialog-title">Add Face</h3>
+        <button id="close-form-btn" class="btn-icon" aria-label="Close form">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
       </div>
       
       <form id="face-form" class="face-form">
@@ -272,7 +311,9 @@
           <label for="image-file-input" class="upload-dropzone" id="upload-dropzone">
             <input type="file" id="image-file-input" accept="image/*" class="file-input-hidden">
             <div id="dropzone-prompt" class="dropzone-content">
-              <span class="upload-icon" aria-hidden="true">📷</span>
+              <span class="upload-icon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              </span>
               <p><strong>Click to choose a photo</strong> or drag and drop</p>
               <span class="hint">Supports PNG, JPG, WEBP or GIF</span>
             </div>
@@ -350,7 +391,9 @@
     <div class="dialog-content">
       <div class="dialog-header">
         <h3>Delete Face</h3>
-        <button id="close-delete-dialog-btn" class="btn-icon" aria-label="Close delete dialog">✕</button>
+        <button id="close-delete-dialog-btn" class="btn-icon" aria-label="Close delete dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
       </div>
       <div class="dialog-body">
         <p>Are you sure you want to delete <strong id="delete-face-name">this face</strong>?</p>
@@ -371,7 +414,9 @@
     <div class="dialog-content">
       <div class="dialog-header">
         <h3>Bulk Upload Photos</h3>
-        <button id="close-bulk-dialog-btn" class="btn-icon" aria-label="Close bulk dialog">✕</button>
+        <button id="close-bulk-dialog-btn" class="btn-icon" aria-label="Close bulk dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
       </div>
 
       <div class="field">
@@ -379,7 +424,9 @@
         <label for="bulk-file-input" class="upload-dropzone" id="bulk-upload-dropzone">
           <input type="file" id="bulk-file-input" accept="image/*" multiple class="file-input-hidden">
           <div class="dropzone-content">
-            <span class="upload-icon" aria-hidden="true">📁</span>
+            <span class="upload-icon" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M12 10v6"/><path d="m9 13 3-3 3 3"/></svg>
+            </span>
             <p><strong>Click to choose multiple photos</strong> or drag and drop</p>
             <span class="hint">Upload 2, 5, 10, or more images at once</span>
           </div>
@@ -432,7 +479,9 @@
     <div class="dialog-content">
       <div class="dialog-header">
         <h3>Admin Login</h3>
-        <button id="close-admin-dialog-btn" class="btn-icon" aria-label="Close admin login dialog">✕</button>
+        <button id="close-admin-dialog-btn" class="btn-icon" aria-label="Close admin login dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
       </div>
       <form id="admin-login-form">
         <div class="dialog-body">
@@ -459,7 +508,9 @@
   <!-- Mobile Floating Chat Action Button -->
   <button id="mobile-chat-fab" class="mobile-chat-fab" aria-label="Open Live Chat">
     <span class="fab-pulse-dot" aria-hidden="true"></span>
-    <span class="fab-icon" aria-hidden="true">💬</span>
+    <span class="fab-icon" aria-hidden="true">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </span>
     <span class="fab-label">Live Chat</span>
     <span id="mobile-chat-badge" class="fab-badge" style="display: none;">0</span>
   </button>
@@ -469,7 +520,9 @@
     <div class="dialog-content">
       <div class="dialog-header">
         <h3>Customize Profile</h3>
-        <button id="close-nickname-dialog-btn" class="btn-icon" aria-label="Close dialog">✕</button>
+        <button id="close-nickname-dialog-btn" class="btn-icon" aria-label="Close dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
       </div>
       <form id="nickname-form">
         <div class="dialog-body">
@@ -486,7 +539,10 @@
             <label for="nickname-input">Display Name <span class="required">*</span></label>
             <div class="nickname-input-group">
               <input type="text" id="nickname-input" class="input" placeholder="e.g. LaughMaster" maxlength="20" required>
-              <button type="button" id="randomize-nickname-btn" class="btn btn--secondary btn--sm" title="Generate random funny nickname">🎲 Random</button>
+              <button type="button" id="randomize-nickname-btn" class="btn btn--secondary btn--sm" title="Generate random nickname">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3.17l-4.24-4.24a2.24 2.24 0 0 0-3.18 0L10.5 6.59"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="8" r="1"/></svg>
+                <span>Random</span>
+              </button>
             </div>
           </div>
         </div>

@@ -1661,7 +1661,7 @@ img {
   100% { transform: scale(1); }
 }
 
-/* Quick Emojis Bar */
+/* Quick Reactions Bar */
 .chat-quick-emojis {
   display: flex;
   align-items: center;
@@ -1680,22 +1680,44 @@ img {
   background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
-  font-size: 14px;
-  padding: 3px 8px;
+  padding: 5px 9px;
   cursor: pointer;
-  transition: transform 0.1s, background 0.15s;
+  transition: transform 0.1s, background 0.15s, border-color 0.15s, color 0.15s;
   flex-shrink: 0;
-  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
 }
 
 .quick-emoji-btn:hover {
   background: var(--surface-hover);
-  transform: scale(1.15);
+  color: var(--text);
+  border-color: var(--border-hover);
+  transform: scale(1.12);
 }
 
 .quick-emoji-btn:active {
   transform: scale(0.95);
 }
+
+/* Inline Vector Icon Badges within Chat Messages & Comments */
+.inline-svg-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -2.5px;
+  margin: 0 1.5px;
+}
+.inline-icon.icon-flame { color: #fb923c; }
+.inline-icon.icon-zap { color: #facc15; }
+.inline-icon.icon-skull { color: #f43f5e; }
+.inline-icon.icon-heart { color: #f43f5e; }
+.inline-icon.icon-laugh { color: #f472b6; }
+.inline-icon.icon-thumbs { color: #38bdf8; }
+.inline-icon.icon-spark { color: #c084fc; }
+.inline-icon.icon-chat { color: #a78bfa; }
+.inline-icon.icon-alien { color: #10b981; }
 
 /* Chat Input Form */
 .chat-input-form {
@@ -1935,27 +1957,41 @@ img {
 }
 
 .avatar-choice-btn {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 48px;
   border-radius: var(--radius-md);
   background: var(--surface-raised);
   border: 2px solid var(--border);
-  font-size: 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   cursor: pointer;
+  padding: 4px 2px;
   transition: transform 0.1s, border-color 0.15s, background 0.15s;
+}
+
+.avatar-choice-btn .avatar-choice-label {
+  font-size: 8.5px;
+  color: var(--text-subtle);
+  font-weight: 500;
+  line-height: 1;
 }
 
 .avatar-choice-btn:hover {
   background: var(--surface-hover);
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
 .avatar-choice-btn.selected {
   border-color: var(--accent);
   background: var(--accent-subtle);
+}
+
+.avatar-choice-btn.selected .avatar-choice-label {
+  color: var(--accent-text);
+  font-weight: 600;
 }
 
 .nickname-input-group {

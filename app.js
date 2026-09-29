@@ -746,7 +746,9 @@ function closeDetails() {
     activeFaceCommentsUnsubscribe();
     activeFaceCommentsUnsubscribe = null;
   }
-  detailsDialog.close();
+  if (detailsDialog && detailsDialog.open) {
+    detailsDialog.close();
+  }
   activeFaceForDetails = null;
 }
 
@@ -803,7 +805,9 @@ function openFormModal(mode, face = null) {
 }
 
 function closeFormModal() {
-  faceFormDialog.close();
+  if (faceFormDialog && faceFormDialog.open) {
+    faceFormDialog.close();
+  }
   faceForm.reset();
   if (imageFileInput) imageFileInput.value = "";
   selectedImageFile = null;
@@ -822,7 +826,9 @@ function promptDelete(face) {
 }
 
 function closeDeleteModal() {
-  deleteConfirmDialog.close();
+  if (deleteConfirmDialog && deleteConfirmDialog.open) {
+    deleteConfirmDialog.close();
+  }
   activeFaceForDelete = null;
 }
 
@@ -992,7 +998,9 @@ function openBulkModal() {
 }
 
 function closeBulkModal() {
-  bulkUploadDialog.close();
+  if (bulkUploadDialog && bulkUploadDialog.open) {
+    bulkUploadDialog.close();
+  }
   bulkSelectedFiles = [];
   if (bulkFileInput) bulkFileInput.value = "";
 }
@@ -1135,7 +1143,9 @@ function openAdminModal() {
 }
 
 function closeAdminModal() {
-  if (adminLoginDialog) adminLoginDialog.close();
+  if (adminLoginDialog && adminLoginDialog.open) {
+    adminLoginDialog.close();
+  }
   if (adminCodeInput) adminCodeInput.value = "";
   if (adminLoginError) {
     adminLoginError.style.display = "none";
@@ -1558,17 +1568,33 @@ function openNicknameModal() {
     nicknameInput.value = currentUser.name;
   }
 
-  nicknameDialog.showModal();
+  if (nicknameDialog && !nicknameDialog.open) {
+    nicknameDialog.showModal();
+  }
 }
 
 function closeNicknameModal() {
-  if (nicknameDialog) nicknameDialog.close();
+  if (nicknameDialog && nicknameDialog.open) {
+    nicknameDialog.close();
+  }
 }
 
+let isSubmittingNickname = false;
 function handleNicknameSubmit(e) {
-  e.preventDefault();
-  const name = (nicknameInput.value || "").trim();
-  if (!name) return;
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  if (isSubmittingNickname) return;
+  isSubmittingNickname = true;
+  setTimeout(() => { isSubmittingNickname = false; }, 400);
+
+  const name = (nicknameInput ? nicknameInput.value : "").trim();
+  if (!name) {
+    showToast("Please enter a display name", "error");
+    if (nicknameInput) nicknameInput.focus();
+    return;
+  }
 
   currentUser = saveCurrentChatUser(name, selectedAvatarChoice);
   updateChatUserUI();
@@ -1741,6 +1767,16 @@ function setupEventListeners() {
   if (closeNicknameDialogBtn) closeNicknameDialogBtn.addEventListener("click", closeNicknameModal);
   if (cancelNicknameBtn) cancelNicknameBtn.addEventListener("click", closeNicknameModal);
   if (nicknameForm) nicknameForm.addEventListener("submit", handleNicknameSubmit);
+  const saveNicknameBtn = document.getElementById("save-nickname-btn");
+  if (saveNicknameBtn) {
+    saveNicknameBtn.addEventListener("click", (e) => {
+      if (nicknameForm && nicknameForm.checkValidity && !nicknameForm.checkValidity()) {
+        nicknameForm.reportValidity();
+        return;
+      }
+      handleNicknameSubmit(e);
+    });
+  }
   if (randomizeNicknameBtn) randomizeNicknameBtn.addEventListener("click", handleRandomizeNickname);
 
   // Bulk upload listeners
@@ -1830,7 +1866,7 @@ function setupEventListeners() {
       if (!inDialog) {
         if (dialog === detailsDialog) {
           closeDetails();
-        } else {
+        } else if (dialog && dialog.open) {
           dialog.close();
         }
       }

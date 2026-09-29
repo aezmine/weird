@@ -729,6 +729,11 @@ img {
 }
 
 /* ---------- Modals & Dialogs ---------- */
+dialog:not([open]),
+.app-dialog:not([open]) {
+  display: none !important;
+}
+
 .app-dialog {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -742,8 +747,6 @@ img {
   max-height: 90vh;
   max-height: min(90vh, 90dvh);
   max-height: calc(100dvh - 28px);
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
   outline: none;
 }
@@ -754,6 +757,8 @@ img {
 }
 
 .app-dialog[open] {
+  display: flex;
+  flex-direction: column;
   animation: modalFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

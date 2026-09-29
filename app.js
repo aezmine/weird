@@ -798,6 +798,8 @@ function openFormModal(mode, face = null) {
   }
 
   faceFormDialog.showModal();
+  const formBody = faceFormDialog.querySelector(".dialog-body");
+  if (formBody) formBody.scrollTop = 0;
 }
 
 function closeFormModal() {
@@ -936,6 +938,7 @@ async function handleFormSubmit(e) {
     console.error("Submission error:", error);
     formErrorMsg.textContent = error.message || "Failed to save face.";
     formErrorMsg.style.display = "block";
+    formErrorMsg.scrollIntoView({ behavior: "smooth", block: "nearest" });
     showToast(error.message || "Save failed", "error");
   } finally {
     submitFormBtn.disabled = false;
@@ -984,6 +987,8 @@ function openBulkModal() {
   startBulkUploadBtn.disabled = true;
   bulkBtnText.textContent = "Upload 0 Photos";
   bulkUploadDialog.showModal();
+  const bulkBody = bulkUploadDialog.querySelector(".dialog-body");
+  if (bulkBody) bulkBody.scrollTop = 0;
 }
 
 function closeBulkModal() {
@@ -1088,6 +1093,7 @@ async function handleStartBulkUpload() {
     console.error("Bulk upload error:", err);
     bulkErrorMsg.textContent = err.message || "Failed to upload some photos.";
     bulkErrorMsg.style.display = "block";
+    bulkErrorMsg.scrollIntoView({ behavior: "smooth", block: "nearest" });
     showToast(`Bulk upload error: ${err.message}`, "error");
   } finally {
     startBulkUploadBtn.disabled = false;

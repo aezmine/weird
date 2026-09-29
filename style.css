@@ -739,6 +739,11 @@ img {
   position: fixed;
   inset: 0;
   margin: auto;
+  max-height: 90vh;
+  max-height: min(90vh, 90dvh);
+  max-height: calc(100dvh - 28px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   outline: none;
 }
@@ -758,33 +763,47 @@ img {
 }
 
 .modal-lg {
-  max-width: min(860px, 90vw);
-  max-height: 90vh;
-  width: 90vw;
+  max-width: min(860px, 92vw);
+  width: 92vw;
 }
 
 .modal-md {
   max-width: 540px;
-  width: 92%;
+  width: min(540px, 94vw);
 }
 
 .modal-sm {
   max-width: 400px;
-  width: 90%;
+  width: min(400px, 92vw);
 }
 
 .dialog-content {
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.face-form,
+#admin-login-form,
+#nickname-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 22px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .dialog-header h3 {
@@ -795,9 +814,27 @@ img {
 }
 
 .dialog-body {
-  padding: 22px;
-  max-height: calc(90vh - 130px);
+  padding: 20px 22px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.dialog-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dialog-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dialog-body::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: var(--radius-full);
 }
 
 .dialog-desc {
@@ -809,10 +846,14 @@ img {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 10px;
-  padding: 14px 22px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border);
   background: var(--surface-hover);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
 }
 
 /* ---------- Inspect / Detail View Layout ---------- */
@@ -942,8 +983,7 @@ img {
   }
 
   #details-dialog .dialog-body {
-    padding: 14px;
-    max-height: calc(88vh - 120px);
+    padding: 14px 16px;
   }
 
   .inspect-img-stage {
@@ -2282,6 +2322,76 @@ img {
 }
 
 @media (max-width: 640px) {
+  /* Modals on mobile: full visible clearance, touch optimized */
+  .app-dialog {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 20px);
+    border-radius: var(--radius-md);
+  }
+
+  .dialog-header {
+    padding: 13px 16px;
+  }
+
+  .dialog-header h3 {
+    font-size: 15px;
+  }
+
+  .dialog-body {
+    padding: 14px 16px;
+  }
+
+  .dialog-footer {
+    padding: 11px 16px;
+    padding-bottom: max(11px, env(safe-area-inset-bottom, 0px));
+    gap: 8px;
+  }
+
+  .dialog-footer .btn {
+    min-height: 42px;
+    padding: 9px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    touch-action: manipulation;
+  }
+
+  .upload-dropzone {
+    padding: 16px 12px;
+  }
+
+  .upload-icon {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+
+  .preview-container img {
+    max-height: 140px;
+  }
+
+  .field {
+    margin-bottom: 12px;
+  }
+
+  .field label {
+    font-size: 12.5px;
+    margin-bottom: 4px;
+  }
+
+  .input, .textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    padding: 8px 11px;
+    scroll-margin: 14px;
+  }
+
+  .textarea {
+    min-height: 72px;
+  }
+
+  .bulk-thumbnails-grid {
+    max-height: 105px;
+  }
+
   .live-chat-panel {
     max-width: 100%;
     border-left: none;

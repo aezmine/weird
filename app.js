@@ -1219,7 +1219,39 @@ function formatRichText(rawText) {
   return escaped;
 }
 
-// Render message cards in live chat feed
+// Render single chat message card HTML
+function renderMessageCardHtml(msg) {
+  const isMyMsg = msg.sender === currentUser.name;
+  const isLiked = isMessageLiked(msg.id);
+  const likesCount = typeof msg.likes === "number" ? msg.likes : 0;
+  const timeStr = formatTimeAgo(msg.createdAt);
+
+  const faceTag = msg.faceName
+    ? `<button type="button" class="chat-msg-tag btn-inspect-tagged-face" data-face-id="${escapeHtml(msg.faceId || '')}" title="Inspect ${escapeHtml(msg.faceName)}">${icon("tag", { size: 11 })} ${escapeHtml(msg.faceName)}</button>`
+    : "";
+
+  return `
+    <div class="chat-msg ${isMyMsg ? 'my-msg' : ''}" data-msg-id="${escapeHtml(msg.id)}">
+      <div class="chat-avatar" aria-hidden="true">${renderAvatarSvg(msg.avatar, 18)}</div>
+      <div class="chat-msg-body">
+        <div class="chat-msg-header">
+          <span class="chat-msg-author">${escapeHtml(msg.sender || "Anonymous")}${isMyMsg ? ' (You)' : ''}</span>
+          <span class="chat-msg-time">${timeStr}</span>
+        </div>
+        ${faceTag}
+        <div class="chat-msg-text">${formatRichText(msg.text)}</div>
+        <div class="chat-msg-footer">
+          <button type="button" class="chat-like-btn ${isLiked ? 'liked' : ''}" data-msg-id="${escapeHtml(msg.id)}" title="${isLiked ? 'Unlike' : 'Like'} this comment">
+            <span class="chat-like-heart" aria-hidden="true">${isLiked ? icon('heartFilled', { size: 12 }) : icon('heartOutline', { size: 12 })}</span>
+            <span class="chat-like-count">${likesCount}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Render message cards in live chat feed with high-performance DOM reconciliation
 function renderChatMessages(messages) {
   if (!chatMessagesContainer) return;
 
@@ -1244,57 +1276,76 @@ function renderChatMessages(messages) {
     return;
   }
 
-  const isScrolledToBottom = (
-    chatMessagesContainer.scrollHeight - chatMessagesContainer.scrollTop <= chatMessagesContainer.clientHeight + 60
-  );
+  // Check scroll position BEFORE modifying DOM
+  const scrollOffset = chatMessagesContainer.scrollHeight - chatMessagesContainer.scrollTop - chatMessagesContainer.clientHeight;
+  const isScrolledToBottom = scrollOffset <= 70;
 
-  chatMessagesContainer.innerHTML = messages
-    .map((msg) => {
-      const isMyMsg = msg.sender === currentUser.name;
-      const isLiked = isMessageLiked(msg.id);
-      const likesCount = typeof msg.likes === "number" ? msg.likes : 0;
-      const timeStr = formatTimeAgo(msg.createdAt);
+  const existingCards = chatMessagesContainer.querySelectorAll(".chat-msg[data-msg-id]");
+  const isInitialOrEmpty = !hasInitialChatLoaded || existingCards.length === 0;
 
-      const faceTag = msg.faceName
-        ? `<button type="button" class="chat-msg-tag btn-inspect-tagged-face" data-face-id="${escapeHtml(msg.faceId || '')}" title="Inspect ${escapeHtml(msg.faceName)}">${icon("tag", { size: 11 })} ${escapeHtml(msg.faceName)}</button>`
-        : "";
+  if (isInitialOrEmpty) {
+    // Initial batch render
+    chatMessagesContainer.innerHTML = messages.map(renderMessageCardHtml).join("");
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    return;
+  }
 
-      return `
-        <div class="chat-msg ${isMyMsg ? 'my-msg' : ''}" data-msg-id="${escapeHtml(msg.id)}">
-          <div class="chat-avatar" aria-hidden="true">${renderAvatarSvg(msg.avatar, 18)}</div>
-          <div class="chat-msg-body">
-            <div class="chat-msg-header">
-              <span class="chat-msg-author">${escapeHtml(msg.sender || "Anonymous")}${isMyMsg ? ' (You)' : ''}</span>
-              <span class="chat-msg-time">${timeStr}</span>
-            </div>
-            ${faceTag}
-            <div class="chat-msg-text">${formatRichText(msg.text)}</div>
-            <div class="chat-msg-footer">
-              <button type="button" class="chat-like-btn ${isLiked ? 'liked' : ''}" data-msg-id="${escapeHtml(msg.id)}" title="${isLiked ? 'Unlike' : 'Like'} this comment">
-                <span class="chat-like-heart" aria-hidden="true">${isLiked ? icon('heartFilled', { size: 12 }) : icon('heartOutline', { size: 12 })}</span>
-                <span class="chat-like-count">${likesCount}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  // Attach click handlers to any tagged face chips
-  chatMessagesContainer.querySelectorAll(".btn-inspect-tagged-face").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const targetId = btn.getAttribute("data-face-id");
-      const matchedFace = allFaces.find((f) => f.id === targetId);
-      if (matchedFace) {
-        openDetails(matchedFace);
-      }
-    });
+  // Efficient Incremental DOM Reconciliation
+  const existingMap = new Map();
+  existingCards.forEach((el) => {
+    existingMap.set(el.getAttribute("data-msg-id"), el);
   });
 
-  // Auto-scroll to bottom if appropriate
-  if (!hasInitialChatLoaded || isScrolledToBottom) {
-    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+  const currentIds = new Set();
+  let hasNewAppended = false;
+
+  messages.forEach((msg) => {
+    currentIds.add(msg.id);
+    const existingEl = existingMap.get(msg.id);
+
+    if (existingEl) {
+      // Update like count & liked state if changed
+      const isLiked = isMessageLiked(msg.id);
+      const likesCount = typeof msg.likes === "number" ? msg.likes : 0;
+      const countEl = existingEl.querySelector(".chat-like-count");
+      const likeBtn = existingEl.querySelector(".chat-like-btn");
+      const heartEl = existingEl.querySelector(".chat-like-heart");
+
+      if (countEl && parseInt(countEl.textContent, 10) !== likesCount) {
+        countEl.textContent = likesCount;
+      }
+      if (likeBtn && likeBtn.classList.contains("liked") !== isLiked) {
+        likeBtn.classList.toggle("liked", isLiked);
+        if (heartEl) {
+          heartEl.innerHTML = isLiked ? icon("heartFilled", { size: 12 }) : icon("heartOutline", { size: 12 });
+        }
+      }
+    } else {
+      // Append new message card
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = renderMessageCardHtml(msg).trim();
+      const newCard = tempDiv.firstElementChild;
+      if (newCard) {
+        chatMessagesContainer.appendChild(newCard);
+        hasNewAppended = true;
+      }
+    }
+  });
+
+  // Remove messages trimmed from collection
+  existingMap.forEach((el, id) => {
+    if (!currentIds.has(id)) {
+      el.remove();
+    }
+  });
+
+  // Auto-scroll to bottom ONLY if user was already at the bottom or sent their own message
+  if (hasNewAppended) {
+    const latestMsg = messages[messages.length - 1];
+    const isMyLatest = latestMsg && latestMsg.sender === currentUser.name;
+    if (isScrolledToBottom || isMyLatest) {
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }
   }
 }
 
@@ -1339,11 +1390,16 @@ async function handleSendChatMessage(e) {
   if (!text) return;
 
   chatInput.value = "";
-  chatInput.focus();
+  
+  // Keep keyboard open cleanly on mobile without causing page jump
+  if (window.innerWidth <= 1024) {
+    chatInput.focus({ preventScroll: true });
+  } else {
+    chatInput.focus();
+  }
 
   try {
     await sendChatMessage({ text });
-    // Smooth scroll to bottom
     if (chatMessagesContainer) {
       chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
     }
@@ -1353,32 +1409,102 @@ async function handleSendChatMessage(e) {
   }
 }
 
+// Mobile Viewport & Drawer Management
+let savedBodyScrollY = 0;
+let visualViewportRaf = null;
+
+function updateChatVisualViewport() {
+  if (!liveChatPanel || !isMobileChatOpen || window.innerWidth > 1024) return;
+
+  const vv = window.visualViewport;
+  if (!vv) {
+    liveChatPanel.style.setProperty("--chat-vh", "100dvh");
+    liveChatPanel.style.setProperty("--chat-top", "0px");
+    return;
+  }
+
+  const vh = vv.height;
+  const offsetTop = vv.offsetTop;
+
+  liveChatPanel.style.setProperty("--chat-vh", `${vh}px`);
+  liveChatPanel.style.setProperty("--chat-top", `${offsetTop}px`);
+
+  // Detect virtual keyboard:
+  // When keyboard opens, visualViewport.height is significantly reduced
+  const fullHeight = window.innerHeight;
+  const isKeyboardOpen = (fullHeight - vh) > 100;
+  liveChatPanel.classList.toggle("keyboard-open", isKeyboardOpen);
+
+  if (isKeyboardOpen && chatMessagesContainer) {
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+  }
+}
+
+function onVisualViewportResizeOrScroll() {
+  if (!isMobileChatOpen || window.innerWidth > 1024) return;
+  if (visualViewportRaf) cancelAnimationFrame(visualViewportRaf);
+  visualViewportRaf = requestAnimationFrame(() => {
+    visualViewportRaf = null;
+    updateChatVisualViewport();
+  });
+}
+
 // Mobile Chat Drawer Controls
 function openMobileChat() {
-  if (liveChatPanel) {
-    liveChatPanel.classList.add("mobile-open");
-  }
+  if (!liveChatPanel) return;
+
+  savedBodyScrollY = window.scrollY || window.pageYOffset || 0;
+  isMobileChatOpen = true;
+
+  liveChatPanel.classList.add("mobile-open");
   if (chatBackdrop) {
     chatBackdrop.style.display = "block";
   }
-  isMobileChatOpen = true;
-  document.body.style.overflow = "hidden";
-  setTimeout(() => {
+  document.body.classList.add("mobile-chat-open");
+
+  updateChatVisualViewport();
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", onVisualViewportResizeOrScroll, { passive: true });
+    window.visualViewport.addEventListener("scroll", onVisualViewportResizeOrScroll, { passive: true });
+  }
+
+  requestAnimationFrame(() => {
     if (chatMessagesContainer) {
       chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
     }
-  }, 100);
+  });
 }
 
 function closeMobileChat() {
-  if (liveChatPanel) {
-    liveChatPanel.classList.remove("mobile-open");
+  if (!liveChatPanel) return;
+
+  if (chatInput && document.activeElement === chatInput) {
+    chatInput.blur();
   }
+
+  liveChatPanel.classList.remove("mobile-open", "keyboard-open");
   if (chatBackdrop) {
     chatBackdrop.style.display = "none";
   }
+  document.body.classList.remove("mobile-chat-open");
+
+  if (window.visualViewport) {
+    window.visualViewport.removeEventListener("resize", onVisualViewportResizeOrScroll);
+    window.visualViewport.removeEventListener("scroll", onVisualViewportResizeOrScroll);
+  }
+
+  if (visualViewportRaf) {
+    cancelAnimationFrame(visualViewportRaf);
+    visualViewportRaf = null;
+  }
+
+  liveChatPanel.style.removeProperty("--chat-vh");
+  liveChatPanel.style.removeProperty("--chat-top");
+
   isMobileChatOpen = false;
-  document.body.style.overflow = "";
+
+  window.scrollTo(0, savedBodyScrollY);
 }
 
 function toggleChatPanel() {
@@ -1483,15 +1609,30 @@ function setupEventListeners() {
     btn.addEventListener("click", () => {
       const reaction = btn.getAttribute("data-reaction") || btn.getAttribute("data-emoji");
       if (chatInput && reaction) {
-        chatInput.value = (chatInput.value ? chatInput.value + " " : "") + reaction;
-        chatInput.focus();
+        const val = chatInput.value || "";
+        chatInput.value = val ? (val.endsWith(" ") ? val + reaction : val + " " + reaction) : reaction;
+        if (window.innerWidth > 1024) {
+          chatInput.focus();
+        } else if (document.activeElement === chatInput) {
+          chatInput.focus({ preventScroll: true });
+        }
       }
     });
   });
 
-  // Chat message like click (event delegation)
+  // Chat message delegated clicks (likes & tagged face inspections)
   if (chatMessagesContainer) {
     chatMessagesContainer.addEventListener("click", async (e) => {
+      const faceTagBtn = e.target.closest(".btn-inspect-tagged-face");
+      if (faceTagBtn) {
+        const targetId = faceTagBtn.getAttribute("data-face-id");
+        const matchedFace = allFaces.find((f) => f.id === targetId);
+        if (matchedFace) {
+          openDetails(matchedFace);
+        }
+        return;
+      }
+
       const likeBtn = e.target.closest(".chat-like-btn");
       if (!likeBtn) return;
       const msgId = likeBtn.getAttribute("data-msg-id");
@@ -1501,7 +1642,7 @@ function setupEventListeners() {
         const newlyLiked = await toggleMessageLike(msgId);
         const heartEl = likeBtn.querySelector(".chat-like-heart");
         const countEl = likeBtn.querySelector(".chat-like-count");
-        let count = parseInt(countEl.textContent, 10) || 0;
+        let count = parseInt(countEl ? countEl.textContent : "0", 10) || 0;
         likeBtn.classList.toggle("liked", newlyLiked);
         if (heartEl) {
           heartEl.innerHTML = newlyLiked ? icon("heartFilled", { size: 12 }) : icon("heartOutline", { size: 12 });
@@ -1513,6 +1654,49 @@ function setupEventListeners() {
       }
     });
   }
+
+  // Mobile keyboard focus & blur management
+  if (chatInput) {
+    chatInput.addEventListener("focus", () => {
+      if (window.innerWidth <= 1024 && isMobileChatOpen) {
+        liveChatPanel.classList.add("keyboard-open");
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          updateChatVisualViewport();
+          if (chatMessagesContainer) {
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+          }
+        }, 60);
+      }
+    });
+
+    chatInput.addEventListener("blur", () => {
+      if (window.innerWidth <= 1024 && isMobileChatOpen) {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          updateChatVisualViewport();
+        }, 60);
+      }
+    });
+  }
+
+  // Handle window resize & orientation change across breakpoints
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 1024) {
+      if (isMobileChatOpen) {
+        closeMobileChat();
+      }
+    } else if (isMobileChatOpen) {
+      updateChatVisualViewport();
+    }
+  }, { passive: true });
+
+  // Escape key to dismiss mobile drawer
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isMobileChatOpen) {
+      closeMobileChat();
+    }
+  });
 
   // Toggle Live Chat from Header and Mobile FAB
   if (toggleChatHeaderBtn) toggleChatHeaderBtn.addEventListener("click", toggleChatPanel);

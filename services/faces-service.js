@@ -86,15 +86,51 @@ export function subscribeToFaces(onUpdate, onError) {
 }
 
 /**
- * Creates a new funny face document in Firestore.
+ * Creates a new funny face document in Firestore and queues AI auto-comments.
  */
 export async function createFace(faceData) {
   const docRef = await addDoc(collection(db, COLLECTION_NAME), {
     ...faceData,
+    roast_allowed: faceData.roast_allowed !== undefined ? Boolean(faceData.roast_allowed) : true,
+    consent_agreed: faceData.consent_agreed !== undefined ? Boolean(faceData.consent_agreed) : true,
+    ai_disabled: false,
+    likesCount: 0,
+    commentsCount: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
-  return docRef.id;
+
+  const faceId = docRef.id;
+
+  // Asynchronously trigger AI extras & auto-comments without blocking client UI
+  try {
+    fetch("/api/ai/extras", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ faceId })
+    }).catch(err => console.warn("AI extras async trigger error:", err));
+
+    fetch("/api/ai/comment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ faceId, action: "auto" })
+    }).catch(err => console.warn("AI auto-comment async trigger error:", err));
+
+    // Announce new face in Live Chat
+    fetch("/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "face_reaction",
+        faceId,
+        faceName: faceData.name || "Funny Face"
+      })
+    }).catch(err => console.warn("AI chat announcement error:", err));
+  } catch (err) {
+    console.warn("Async AI dispatch error:", err);
+  }
+
+  return faceId;
 }
 
 /**
@@ -127,6 +163,11 @@ export async function seedInitialFaces() {
     const newDoc = doc(facesRef);
     batch.set(newDoc, {
       ...face,
+      roast_allowed: true,
+      consent_agreed: true,
+      ai_disabled: false,
+      likesCount: 0,
+      commentsCount: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -136,7 +177,7 @@ export async function seedInitialFaces() {
 }
 
 /**
- * Creates multiple face documents in Firestore using writeBatch.
+ * Creates multiple face documents in Firestore using writeBatch and queues AI processing.
  * @param {Array<Object>} facesArray - Array of face objects
  * @returns {Promise<number>} Number of faces saved
  */
@@ -145,6 +186,7 @@ export async function bulkCreateFaces(facesArray) {
 
   const BATCH_SIZE = 400; // Under Firestore limit of 500
   const facesRef = collection(db, COLLECTION_NAME);
+  const createdIds = [];
 
   for (let i = 0; i < facesArray.length; i += BATCH_SIZE) {
     const chunk = facesArray.slice(i, i + BATCH_SIZE);
@@ -152,8 +194,14 @@ export async function bulkCreateFaces(facesArray) {
 
     chunk.forEach((face) => {
       const newDoc = doc(facesRef);
+      createdIds.push(newDoc.id);
       batch.set(newDoc, {
         ...face,
+        roast_allowed: face.roast_allowed !== undefined ? Boolean(face.roast_allowed) : true,
+        consent_agreed: face.consent_agreed !== undefined ? Boolean(face.consent_agreed) : true,
+        ai_disabled: false,
+        likesCount: 0,
+        commentsCount: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -162,5 +210,23 @@ export async function bulkCreateFaces(facesArray) {
     await batch.commit();
   }
 
-  return facesArray.length;
+  // Enqueue AI processing through rate-limited background queue (never fire 20 at once)
+  if (createdIds.length > 0) {
+    try {
+      fetch("/api/ai/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "enqueue",
+          faceIds: createdIds,
+          type: "auto_comment"
+        })
+      }).catch(err => console.warn("Failed to enqueue bulk AI jobs:", err));
+    } catch (err) {
+      console.warn("Bulk queue dispatch error:", err);
+    }
+  }
+
+  return createdIds.length;
 }
+

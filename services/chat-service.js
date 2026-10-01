@@ -218,8 +218,27 @@ export async function sendChatMessage({ text, faceId = null, faceName = null }) 
     likes: 0,
     createdAt: serverTimestamp()
   });
+  const msgId = docRef.id;
 
-  return docRef.id;
+  // Check if message mentions @Gossip or @Critic
+  const lower = trimmedText.toLowerCase();
+  if (lower.includes("@gossip") || lower.includes("@critic")) {
+    try {
+      fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "mention",
+          text: trimmedText,
+          sender: user.name,
+          faceId,
+          faceName
+        })
+      }).catch(err => console.warn("Live chat AI mention error:", err));
+    } catch {}
+  }
+
+  return msgId;
 }
 
 /**
@@ -300,11 +319,106 @@ export async function addFaceComment(faceId, faceName, text) {
       createdAt: serverTimestamp()
     });
   } catch (err) {
-    console.warn("Could not cross-post to live chat:", err);
+    console.warn("Could not broadcast comment to chat:", err);
+  }
+
+  // 4. Asynchronously trigger AI probabilistic reply and potential banter thread
+  try {
+    fetch("/api/ai/reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        faceId,
+        commentId: commentRef.id,
+        commentText: trimmed,
+        visitorName: user.name
+      })
+    }).catch(err => console.warn("AI reply trigger error:", err));
+  } catch (err) {
+    console.warn("AI reply trigger error:", err);
   }
 
   return commentRef.id;
 }
+
+export const STORAGE_KEY_NOTIFICATIONS = "minwtf_notifications";
+
+/**
+ * Get stored notifications list
+ */
+export function getStoredNotifications() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Add a new user notification
+ */
+export function addNotification({ title, message, linkFaceId = null }) {
+  try {
+    const list = getStoredNotifications();
+    const newNotif = {
+      id: "notif_" + Date.now(),
+      title,
+      message,
+      linkFaceId,
+      unread: true,
+      timestamp: Date.now()
+    };
+    const updated = [newNotif, ...list].slice(0, 30);
+    localStorage.setItem(STORAGE_KEY_NOTIFICATIONS, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Clear stored notifications
+ */
+export function clearStoredNotifications() {
+  try {
+    localStorage.removeItem(STORAGE_KEY_NOTIFICATIONS);
+  } catch {}
+}
+
+/**
+ * Toggle emoji reaction on a comment
+ */
+export async function toggleCommentReaction(commentId, emoji) {
+  const user = getCurrentChatUser();
+  const storageKey = `minwtf_reacted_${commentId}_${emoji}`;
+  const alreadyReacted = localStorage.getItem(storageKey) === "true";
+  const delta = alreadyReacted ? -1 : 1;
+
+  if (alreadyReacted) {
+    localStorage.removeItem(storageKey);
+  } else {
+    localStorage.setItem(storageKey, "true");
+  }
+
+  const commentDoc = doc(db, COMMENTS_COLLECTION, commentId);
+  await updateDoc(commentDoc, {
+    [`reactions.${emoji}`]: increment(delta)
+  });
+
+  return !alreadyReacted;
+}
+
+/**
+ * Pin or unpin a comment (Admin only)
+ */
+export async function togglePinComment(commentId, pinned) {
+  const commentDoc = doc(db, COMMENTS_COLLECTION, commentId);
+  await updateDoc(commentDoc, {
+    pinned: Boolean(pinned)
+  });
+}
+
 
 /**
  * Pleasant Web Audio ping for incoming chat messages (no external audio files required)

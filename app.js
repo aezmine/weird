@@ -1,4 +1,4 @@
-// Main Application Logic - Modern Dark Edition
+// Main Application Logic - MinWTF Dual-AI Upgrade Edition
 import { cloudinaryConfig } from "./firebase-config.js";
 import { uploadToCloudinary, uploadMultipleToCloudinary, getOptimizedImageUrl, getFullImageUrl } from "./services/cloudinary.js";
 import {
@@ -21,7 +21,12 @@ import {
   addFaceComment,
   playNotificationSound,
   FUNNY_AVATARS,
-  STORAGE_KEY_SOUND
+  STORAGE_KEY_SOUND,
+  toggleCommentReaction,
+  togglePinComment,
+  getStoredNotifications,
+  addNotification,
+  clearStoredNotifications
 } from "./services/chat-service.js";
 import { icon, renderAvatarSvg, AVATAR_OPTIONS } from "./services/icons.js";
 
@@ -39,6 +44,14 @@ let activeFaceForDetails = null;
 let activeFaceForDelete = null;
 let selectedImageFile = null;
 let bulkSelectedFiles = [];
+let currentFilter = "all";
+let followedResidents = [];
+try {
+  followedResidents = JSON.parse(localStorage.getItem("minwtf_followed_ai") || "[]");
+} catch {}
+let activeChallenge = null;
+let activeMood = null;
+let inspectCommentFilter = "all";
 
 // Live Chat & Comment State
 let currentUser = getCurrentChatUser();
@@ -59,8 +72,72 @@ const emptyState = document.getElementById("empty-state");
 const facesCounter = document.getElementById("faces-counter");
 const searchInput = document.getElementById("search-input");
 const configNotice = document.getElementById("config-notice");
-const themeBtn = document.getElementById("themebtn");
 const toastDock = document.getElementById("toastdock");
+
+// Mood & Daily Challenge Elements
+const todaysMoodBanner = document.getElementById("todays-mood-banner");
+const todaysMoodText = document.getElementById("todays-mood-text");
+const refreshMoodBtn = document.getElementById("refresh-mood-btn");
+const dailyChallengeCard = document.getElementById("daily-challenge-card");
+const challengeHostTag = document.getElementById("challenge-host-tag");
+const viewChallengeBtn = document.getElementById("view-challenge-btn");
+const challengeFacePreview = document.getElementById("challenge-face-preview");
+const challengePromptText = document.getElementById("challenge-prompt-text");
+const challengeVerdictBox = document.getElementById("challenge-verdict-box");
+
+// Feed Filter Tabs
+const filterPillBtns = document.querySelectorAll(".filter-pill-btn");
+
+// Navigation & Popovers
+const navHallOfFameBtn = document.getElementById("nav-hall-of-fame-btn");
+const navAiCrewBtn = document.getElementById("nav-ai-crew-btn");
+const notificationsBellBtn = document.getElementById("notifications-bell-btn");
+const notificationsBadge = document.getElementById("notifications-badge");
+const notificationsPopover = document.getElementById("notifications-popover");
+const notificationsList = document.getElementById("notifications-list");
+const clearNotificationsBtn = document.getElementById("clear-notifications-btn");
+
+// Hall of Fame Dialog Elements
+const hallOfFameDialog = document.getElementById("hall-of-fame-dialog");
+const closeHofBtn = document.getElementById("close-hof-btn");
+const dismissHofBtn = document.getElementById("dismiss-hof-btn");
+const hofWeekTitle = document.getElementById("hof-week-title");
+const hofWeekAnnouncement = document.getElementById("hof-week-announcement");
+const hofWeekImg = document.getElementById("hof-week-img");
+const hofWeekImgWrap = document.getElementById("hof-week-img-wrap");
+const hofTopLikes = document.getElementById("hof-top-likes");
+const hofTopRating = document.getElementById("hof-top-rating");
+const hofTopCritic = document.getElementById("hof-top-critic");
+
+// AI Crew Dialog Elements
+const aiCrewDialog = document.getElementById("ai-crew-dialog");
+const closeCrewBtn = document.getElementById("close-crew-btn");
+const dismissCrewBtn = document.getElementById("dismiss-crew-btn");
+const followGossipBtn = document.getElementById("follow-gossip-btn");
+const followCriticBtn = document.getElementById("follow-critic-btn");
+const filterGossipFeedBtn = document.getElementById("filter-gossip-feed-btn");
+const filterCriticFeedBtn = document.getElementById("filter-critic-feed-btn");
+const gossipStatComments = document.getElementById("gossip-stat-comments");
+const criticStatComments = document.getElementById("critic-stat-comments");
+
+// Admin Dashboard Elements
+const adminDashboardBtn = document.getElementById("admin-dashboard-btn");
+const adminDashboardDialog = document.getElementById("admin-dashboard-dialog");
+const closeAdminDashBtn = document.getElementById("close-admin-dash-btn");
+const closeAdminDashFooterBtn = document.getElementById("close-admin-dash-footer-btn");
+const adminAiMasterToggle = document.getElementById("admin-ai-master-toggle");
+const adminRoastDefaultToggle = document.getElementById("admin-roast-default-toggle");
+const adminDailyCapSlider = document.getElementById("admin-daily-cap-slider");
+const adminCapDisplay = document.getElementById("admin-cap-display");
+const adminReplyProbSlider = document.getElementById("admin-reply-prob-slider");
+const adminProbDisplay = document.getElementById("admin-prob-display");
+const saveAiSettingsBtn = document.getElementById("save-ai-settings-btn");
+const adminCallsTodayCount = document.getElementById("admin-calls-today-count");
+const adminCostCounter = document.getElementById("admin-cost-counter");
+const adminResetCostBtn = document.getElementById("admin-reset-cost-btn");
+const adminPendingQueueCount = document.getElementById("admin-pending-queue-count");
+const adminRunQueueBtn = document.getElementById("admin-run-queue-btn");
+const adminAiCommentsTbody = document.getElementById("admin-ai-comments-tbody");
 
 // Layout & Live Chat Elements
 const appSplitContainer = document.querySelector(".app-split-container");
@@ -181,39 +258,12 @@ const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
 const deleteSpinner = document.getElementById("delete-spinner");
 const deleteBtnText = document.getElementById("delete-btn-text");
 
-// Theme management
+// Theme management (Single Grey Theme - Dark mode completely removed)
 function initTheme() {
-  const root = document.documentElement;
-  
-  function applyTheme(mode) {
-    if (mode === "light") {
-      root.setAttribute("data-theme", "light");
-    } else {
-      root.removeAttribute("data-theme");
-    }
-    const isDark = root.getAttribute("data-theme") !== "light";
-    if (themeBtn) {
-      themeBtn.setAttribute("aria-pressed", String(isDark));
-    }
-  }
-
+  document.documentElement.removeAttribute("data-theme");
   try {
-    const saved = localStorage.getItem("funny-faces-theme");
-    applyTheme(saved || "dark");
-  } catch {
-    applyTheme("dark");
-  }
-
-  if (themeBtn) {
-    themeBtn.addEventListener("click", () => {
-      const current = root.getAttribute("data-theme");
-      const next = current === "light" ? "dark" : "light";
-      applyTheme(next);
-      try {
-        localStorage.setItem("funny-faces-theme", next);
-      } catch {}
-    });
-  }
+    localStorage.removeItem("funny-faces-theme");
+  } catch {}
 }
 
 // Check configuration
@@ -304,7 +354,7 @@ function renderCards(facesToRender) {
 
   facesToRender.forEach((face) => {
     const card = document.createElement("article");
-    card.className = "face-card";
+    card.className = `face-card ${face.hidden ? 'face-card-hidden' : ''}`;
 
     // Deliver optimized thumbnail size for cards
     const thumbUrl = getOptimizedImageUrl(face.image, { width: 560, height: 420, fit: "fill" });
@@ -312,6 +362,12 @@ function renderCards(facesToRender) {
     const isLiked = isFaceLiked(face.id);
     const likesCount = typeof face.likesCount === "number" ? face.likesCount : 0;
     const commentsCount = typeof face.commentsCount === "number" ? face.commentsCount : 0;
+
+    const extras = face.ai_extras || null;
+    const vibeLine = extras?.vibeLine || "";
+    const autoTags = Array.isArray(extras?.autoTags) ? extras.autoTags : [];
+    const criticScore = extras?.criticScore || "";
+    const looksLike = extras?.looksLike || "";
 
     const socialControls = `
       <div class="card-social-actions">
@@ -330,6 +386,8 @@ function renderCards(facesToRender) {
       ? `
         <button type="button" class="btn btn--secondary btn--sm btn-detail">Inspect</button>
         ${socialControls}
+        <button type="button" class="btn-icon btn-regen-ai" data-face-id="${escapeHtml(face.id)}" title="Regenerate AI Extras">${icon('refresh', { size: 13 })}</button>
+        <button type="button" class="btn-icon btn-toggle-ai" data-face-id="${escapeHtml(face.id)}" title="${face.ai_disabled ? 'Enable AI' : 'Disable AI'}">${face.ai_disabled ? icon('botOff', { size: 13 }) : icon('bot', { size: 13 })}</button>
         <button type="button" class="btn-icon btn-edit" title="Edit face" aria-label="Edit ${escapeHtml(face.name)}">${icon('pencil', { size: 13 })}</button>
         <button type="button" class="btn-icon btn-delete" title="Delete face" aria-label="Delete ${escapeHtml(face.name)}">${icon('trash', { size: 13 })}</button>
       `
@@ -343,13 +401,27 @@ function renderCards(facesToRender) {
         <img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(face.name)}" loading="lazy" width="280" height="210">
         <div class="card-badges">
           <span class="badge badge-category" title="${escapeHtml(face.expression || 'Funny')}">${escapeHtml(face.expression || 'Funny')}</span>
-          <span class="badge badge-score" title="Rating">${icon('star', { size: 11 })} ${escapeHtml(face.funnyScore || '0')}</span>
+          <span class="badge badge-score" title="User Rating">${icon('star', { size: 11 })} ${escapeHtml(face.funnyScore || '0')}</span>
+          ${criticScore ? `<span class="badge badge-critic-score" title="Critic Score: ${escapeHtml(criticScore)}/10">${icon('bot', { size: 10 })} Critic ${escapeHtml(criticScore)}</span>` : ''}
         </div>
       </div>
       <div class="card-content">
         <h3 class="card-title" title="Click to view details">${escapeHtml(face.name)}</h3>
+        ${vibeLine ? `<div class="card-vibe-line">“${escapeHtml(vibeLine)}”</div>` : ''}
         <p class="card-caption">${escapeHtml(face.caption ? `"${face.caption}"` : "")}</p>
-        <div class="card-actions">
+        ${autoTags.length ? `<div class="card-tags-list">${autoTags.map(t => `<span class="card-tag-item">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        ${looksLike ? `<div class="card-looks-like" title="AI Comparison"><span>Looks like: ${escapeHtml(looksLike)}</span></div>` : ''}
+        
+        <div class="card-ai-buttons">
+          <button type="button" class="btn-hype-card" data-face-id="${escapeHtml(face.id)}" title="Gossip writes an ultimate hype comment">
+            <span>Hype It &rarr;</span>
+          </button>
+          <button type="button" class="btn-roast-card" data-face-id="${escapeHtml(face.id)}" title="Critic roasts this face">
+            <span>Roast It &rarr;</span>
+          </button>
+        </div>
+
+        <div class="card-actions" style="margin-top: 10px;">
           ${actionButtons}
         </div>
       </div>
@@ -360,6 +432,84 @@ function renderCards(facesToRender) {
     card.querySelector(".card-img-wrapper").addEventListener("click", openDetailTrigger);
     card.querySelector(".card-title").addEventListener("click", openDetailTrigger);
     card.querySelector(".btn-detail").addEventListener("click", openDetailTrigger);
+
+    // Hype it button click
+    const hypeBtn = card.querySelector(".btn-hype-card");
+    if (hypeBtn) {
+      hypeBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        hypeBtn.disabled = true;
+        const originalText = hypeBtn.innerHTML;
+        hypeBtn.innerHTML = `<span>Hyping...</span>`;
+        try {
+          const res = await fetch("/api/ai/comment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              faceId: face.id,
+              action: "hype",
+              visitorId: currentUser.name,
+              visitorName: currentUser.name
+            })
+          });
+          const data = await res.json();
+          if (data.cap_reached) {
+            showToast("The Crew is resting for today!", "info");
+          } else if (data.rate_limited) {
+            showToast(data.error, "error");
+          } else if (data.success) {
+            showToast("Gossip just hyped this face in comments! 🔥", "success");
+            openDetails(face, true);
+          } else {
+            showToast(data.error || "Could not generate hype comment.", "error");
+          }
+        } catch (err) {
+          showToast("Network error generating hype.", "error");
+        } finally {
+          hypeBtn.disabled = false;
+          hypeBtn.innerHTML = originalText;
+        }
+      });
+    }
+
+    // Roast it button click
+    const roastBtn = card.querySelector(".btn-roast-card");
+    if (roastBtn) {
+      roastBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        roastBtn.disabled = true;
+        const originalText = roastBtn.innerHTML;
+        roastBtn.innerHTML = `<span>Roasting...</span>`;
+        try {
+          const res = await fetch("/api/ai/comment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              faceId: face.id,
+              action: "roast",
+              visitorId: currentUser.name,
+              visitorName: currentUser.name
+            })
+          });
+          const data = await res.json();
+          if (data.cap_reached) {
+            showToast("The Crew is resting for today!", "info");
+          } else if (data.rate_limited) {
+            showToast(data.error, "error");
+          } else if (data.success) {
+            showToast("Critic delivered a light roast in comments! 🌶️", "success");
+            openDetails(face, true);
+          } else {
+            showToast(data.error || "Could not generate roast comment.", "error");
+          }
+        } catch (err) {
+          showToast("Network error generating roast.", "error");
+        } finally {
+          roastBtn.disabled = false;
+          roastBtn.innerHTML = originalText;
+        }
+      });
+    }
 
     // Like button click
     const cardLikeBtn = card.querySelector(".btn-card-like");
@@ -401,6 +551,57 @@ function renderCards(facesToRender) {
       });
     }
 
+    // Admin Regenerate AI button
+    const regenBtn = card.querySelector(".btn-regen-ai");
+    if (regenBtn) {
+      regenBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        showToast(`Regenerating AI extras for "${face.name}"...`, "info");
+        try {
+          const res = await fetch("/api/ai/extras", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ faceId: face.id, forceRegenerate: true })
+          });
+          const data = await res.json();
+          if (data.success) {
+            face.ai_extras = data.extras;
+            filterFaces();
+            showToast("AI Extras refreshed!", "success");
+          }
+        } catch {
+          showToast("Failed to regenerate extras", "error");
+        }
+      });
+    }
+
+    // Admin Toggle AI on face
+    const toggleAiBtn = card.querySelector(".btn-toggle-ai");
+    if (toggleAiBtn) {
+      toggleAiBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        try {
+          const res = await fetch("/api/ai/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              adminCode: ADMIN_ACCESS_CODE,
+              action: "toggle_face_ai",
+              faceId: face.id
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            face.ai_disabled = data.ai_disabled;
+            filterFaces();
+            showToast(data.ai_disabled ? "AI disabled for this face." : "AI enabled for this face.", "info");
+          }
+        } catch {
+          showToast("Error updating AI status", "error");
+        }
+      });
+    }
+
     // Edit button click (Admin only)
     const editBtn = card.querySelector(".btn-edit");
     if (editBtn) {
@@ -431,20 +632,42 @@ function renderCards(facesToRender) {
   });
 }
 
-// Filter faces based on search
+// Filter faces based on search & category filter tabs
 function filterFaces() {
+  let list = [...allFaces];
+
+  // Filter hidden faces for non-admin
+  if (!isAdmin) {
+    list = list.filter(f => !f.hidden);
+  }
+
+  // Apply active tab filter
+  if (currentFilter === "most-liked") {
+    list.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
+  } else if (currentFilter === "highest-rated") {
+    list.sort((a, b) => parseFloat(b.funnyScore || 0) - parseFloat(a.funnyScore || 0));
+  } else if (currentFilter === "critic-picks") {
+    list.sort((a, b) => parseFloat(b.ai_extras?.criticScore || 0) - parseFloat(a.ai_extras?.criticScore || 0));
+  } else if (currentFilter === "by-gossip") {
+    list = list.filter(f => (f.ai_extras && f.ai_extras.vibeLine) || f.has_gossip_comment);
+  } else if (currentFilter === "by-critic") {
+    list = list.filter(f => (f.ai_extras && f.ai_extras.criticScore) || f.has_critic_comment);
+  }
+
   const query = (searchInput.value || "").toLowerCase().trim();
   if (!query) {
-    renderCards(allFaces);
+    renderCards(list);
     return;
   }
 
-  const filtered = allFaces.filter((face) => {
+  const filtered = list.filter((face) => {
     const nameMatch = (face.name || "").toLowerCase().includes(query);
     const exprMatch = (face.expression || "").toLowerCase().includes(query);
     const capMatch = (face.caption || "").toLowerCase().includes(query);
     const storyMatch = (face.backstory || "").toLowerCase().includes(query);
-    return nameMatch || exprMatch || capMatch || storyMatch;
+    const tagMatch = face.ai_extras?.autoTags?.some(t => t.toLowerCase().includes(query));
+    const vibeMatch = (face.ai_extras?.vibeLine || "").toLowerCase().includes(query);
+    return nameMatch || exprMatch || capMatch || storyMatch || tagMatch || vibeMatch;
   });
 
   renderCards(filtered);
@@ -491,19 +714,119 @@ function formatTimeAgo(timestamp) {
 }
 
 // Open Details Dialog
+let activeFaceCommentsList = [];
+
+function renderFaceCommentsList(face, container) {
+  if (!container) return;
+
+  let filtered = [...activeFaceCommentsList];
+  if (inspectCommentFilter === "humans") {
+    filtered = filtered.filter(c => c.author_type !== "ai");
+  } else if (inspectCommentFilter === "gossip") {
+    filtered = filtered.filter(c => c.author_type === "ai" && (c.ai_id === "gossip" || (c.sender || "").toLowerCase().includes("gossip")));
+  } else if (inspectCommentFilter === "critic") {
+    filtered = filtered.filter(c => c.author_type === "ai" && (c.ai_id === "critic" || (c.sender || "").toLowerCase().includes("critic")));
+  }
+
+  // Sort pinned comments first
+  filtered.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 24px 8px; color: var(--text-muted); font-size: 12.5px;">
+        <p style="margin: 0;">No comments in this view.</p>
+        <span style="font-size: 11.5px; color: var(--text-subtle);">Be the first to say something or trigger an AI resident above!</span>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map((c) => {
+    const isAi = c.author_type === "ai" || c.ai_id || c.sender === "Gossip" || c.sender === "Critic";
+    const isCritic = c.ai_id === "critic" || c.sender === "Critic";
+    const avatarUrl = isAi
+      ? (isCritic ? "https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/kioa9cgrappuxay0emgt.jpg" : "https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/ttanlankvxliwxh1potw.jpg")
+      : null;
+
+    const avatarHtml = isAi
+      ? `<img src="${avatarUrl}" class="face-comment-avatar-img" alt="${escapeHtml(c.sender)}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent);">`
+      : renderAvatarSvg(c.avatar, 20);
+
+    const senderDisplay = isAi
+      ? `<span class="face-comment-author ai-author" style="color: ${isCritic ? '#818cf8' : '#f472b6'}; font-weight: 700;">${escapeHtml(c.sender)} <span class="ai-badge">AI</span></span>`
+      : `<span class="face-comment-author">${escapeHtml(c.sender || "Anonymous")}</span>`;
+
+    const pinnedBadge = c.pinned ? `<span class="pinned-badge">Pinned</span>` : "";
+
+    const reactions = c.reactions || {};
+    const emojis = ["❤️", "🔥", "😂", "💀"];
+    const reactionButtons = emojis.map((emoji) => {
+      const count = reactions[emoji] || 0;
+      const storageKey = `minwtf_reacted_${c.id}_${emoji}`;
+      const reacted = localStorage.getItem(storageKey) === "true";
+      return `
+        <button type="button" class="comment-reaction-btn ${reacted ? 'reacted' : ''}" data-comment-id="${escapeHtml(c.id)}" data-emoji="${emoji}" title="React with ${emoji}">
+          <span>${emoji}</span>
+          ${count > 0 ? `<span class="reaction-count" style="font-size: 10.5px; margin-left: 2px;">${count}</span>` : ""}
+        </button>
+      `;
+    }).join("");
+
+    const adminActions = isAdmin
+      ? `
+        <button type="button" class="comment-pin-btn" data-comment-id="${escapeHtml(c.id)}" data-pinned="${Boolean(c.pinned)}" title="${c.pinned ? 'Unpin comment' : 'Pin comment'}">
+          ${c.pinned ? 'Unpin' : 'Pin'}
+        </button>
+        <button type="button" class="comment-delete-ai-btn" data-face-id="${escapeHtml(face.id)}" data-comment-id="${escapeHtml(c.id)}" title="Delete comment">
+          Delete
+        </button>
+      `
+      : "";
+
+    return `
+      <div class="face-comment-item ${isAi ? 'is-ai-comment' : ''} ${isCritic ? 'is-ai-critic' : ''} ${c.pinned ? 'is-pinned' : ''}" data-comment-id="${escapeHtml(c.id)}">
+        <span class="face-comment-avatar" aria-hidden="true">${avatarHtml}</span>
+        <div class="face-comment-content" style="flex: 1; min-width: 0;">
+          <div class="face-comment-author-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              ${senderDisplay}
+              ${pinnedBadge}
+            </div>
+            <span class="face-comment-time" style="font-size: 10.5px; color: var(--text-muted);">${formatTimeAgo(c.createdAt)}</span>
+          </div>
+          <div class="face-comment-text" style="font-size: 13px; line-height: 1.45; word-break: break-word;">${formatRichText(c.text)}</div>
+          
+          <div class="comment-actions-bar">
+            <div class="reaction-btn-group">
+              ${reactionButtons}
+            </div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 4px;">
+              ${adminActions}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
 function openDetails(face, shouldFocusComments = false) {
   activeFaceForDetails = face;
   detailTitle.textContent = face.name;
 
-  // Clean up any previous comments listener
   if (activeFaceCommentsUnsubscribe) {
     activeFaceCommentsUnsubscribe();
     activeFaceCommentsUnsubscribe = null;
   }
 
-  // Use full uncropped image URL
   const fullImageUrl = getFullImageUrl(face.image);
   const dateString = formatFaceDate(face.createdAt);
+  const extras = face.ai_extras || {};
+  const vibeLine = extras.vibeLine || "";
+  const autoTags = Array.isArray(extras.autoTags) ? extras.autoTags : [];
+  const criticScore = extras.criticScore || "";
+  const criticReason = extras.criticReason || "";
+  const looksLike = extras.looksLike || "";
 
   dialogBody.innerHTML = `
     <div class="inspect-container">
@@ -528,7 +851,34 @@ function openDetails(face, shouldFocusComments = false) {
         <div class="inspect-badges">
           <span class="badge badge-category">${escapeHtml(face.expression || "Funny")}</span>
           <span class="badge badge-score">${icon('star', { size: 11 })} ${escapeHtml(face.funnyScore || "0")} / 10</span>
+          ${criticScore ? `<span class="badge" style="background: var(--paper2); font-weight: 700;">🎩 Critic: ${escapeHtml(criticScore)}/10</span>` : ""}
         </div>
+
+        ${vibeLine ? `
+          <div class="inspect-vibe-box" style="margin: 6px 0 8px; font-size: 13.5px; font-style: italic; color: var(--ink); font-weight: 600;">
+            ✨ "${escapeHtml(vibeLine)}"
+          </div>
+        ` : ""}
+
+        ${autoTags.length > 0 ? `
+          <div class="inspect-tags-row" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px;">
+            ${autoTags.map(t => `<span class="badge" style="background: var(--surface-raised); border: 1px solid var(--border); font-size: 11px; color: var(--text-muted);">#${escapeHtml(t)}</span>`).join('')}
+          </div>
+        ` : ""}
+
+        ${criticScore && criticReason ? `
+          <div class="inspect-critic-box" style="background: var(--paper2); border-left: 3px solid var(--ink); padding: 8px 12px; border-radius: var(--wob2); margin-bottom: 8px; font-size: 12.5px;">
+            <strong>Critic's Take:</strong>
+            <span style="color: var(--soft); margin-left: 4px;">"${escapeHtml(criticReason)}"</span>
+          </div>
+        ` : ""}
+
+        ${looksLike ? `
+          <div class="inspect-looks-like" style="font-size: 15px; color: var(--soft); margin-bottom: 8px;">
+            <span>Looks like:</span> <strong style="color: var(--ink);">${escapeHtml(looksLike)}</strong>
+          </div>
+        ` : ""}
+
         ${face.caption ? `<div class="inspect-quote">"${escapeHtml(face.caption)}"</div>` : ""}
         ${face.backstory ? `
           <div class="inspect-backstory-box">
@@ -542,19 +892,51 @@ function openDetails(face, shouldFocusComments = false) {
 
         <!-- Real-time Face Comments Section (Firestore) -->
         <div class="face-comments-section" id="inspect-comments-section">
-          <div class="face-comments-header">
-            <h4>Comments (<span id="face-comments-count">0</span>)</h4>
-            <span class="face-comments-sub">Everyone can share thoughts!</span>
+          <div class="face-comments-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+            <div>
+              <h4 style="margin: 0; font-size: 15px;">Comments (<span id="face-comments-count">0</span>)</h4>
+              <span class="face-comments-sub" style="font-size: 11.5px; color: var(--text-muted);">Dual-AI resident banter & live reactions</span>
+            </div>
+
+            <!-- Comment Filter Tabs -->
+            <div class="comment-filter-tabs" style="display: flex; gap: 4px; background: var(--surface-raised); padding: 3px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+              <button type="button" class="comment-filter-btn ${inspectCommentFilter === 'all' ? 'active' : ''}" data-filter="all" style="font-size: 11px; padding: 2px 8px; border-radius: var(--radius-xs); border: none; background: transparent; cursor: pointer; color: var(--text);">All</button>
+              <button type="button" class="comment-filter-btn ${inspectCommentFilter === 'humans' ? 'active' : ''}" data-filter="humans" style="font-size: 11px; padding: 2px 8px; border-radius: var(--radius-xs); border: none; background: transparent; cursor: pointer; color: var(--text);">Humans</button>
+              <button type="button" class="comment-filter-btn ${inspectCommentFilter === 'gossip' ? 'active' : ''}" data-filter="gossip" style="font-size: 11px; padding: 2px 8px; border-radius: var(--radius-xs); border: none; background: transparent; cursor: pointer; color: var(--text);">Gossip</button>
+              <button type="button" class="comment-filter-btn ${inspectCommentFilter === 'critic' ? 'active' : ''}" data-filter="critic" style="font-size: 11px; padding: 2px 8px; border-radius: var(--radius-xs); border: none; background: transparent; cursor: pointer; color: var(--text);">Critic</button>
+            </div>
           </div>
 
-          <div id="face-comments-list" class="face-comments-list">
+          <!-- On-Demand AI Residents Action Bar -->
+          <div class="inspect-ai-actions-bar">
+            <button type="button" class="btn btn--secondary btn--sm btn-ask-gossip" id="btn-ask-gossip" title="Ask Gossip for a fresh hype comment">
+              <span>Ask Gossip &rarr;</span>
+            </button>
+            <button type="button" class="btn btn--secondary btn--sm btn-ask-critic" id="btn-ask-critic" title="Ask Critic for a review">
+              <span>Ask Critic &rarr;</span>
+            </button>
+            <button type="button" class="btn btn--secondary btn--sm btn-hype-detail" id="btn-hype-detail" title="Hype this face">
+              <span>Hype It &rarr;</span>
+            </button>
+            <button type="button" class="btn btn--secondary btn--sm btn-roast-detail" id="btn-roast-detail" title="Deliver a savage roast">
+              <span>Roast It &rarr;</span>
+            </button>
+          </div>
+
+          <!-- Typing indicator -->
+          <div id="inspect-typing-indicator" class="ai-typing-indicator">
+            <span class="typing-dots"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></span>
+            <span id="inspect-typing-text">Gossip is typing...</span>
+          </div>
+
+          <div id="face-comments-list" class="face-comments-list" style="max-height: 380px; overflow-y: auto;">
             <div class="chat-loading-placeholder">
               <span class="spinner"></span>
               <span>Loading comments...</span>
             </div>
           </div>
 
-          <form id="face-comment-form" class="face-comment-form">
+          <form id="face-comment-form" class="face-comment-form" style="margin-top: 10px;">
             <div class="comment-input-box">
               <input
                 type="text"
@@ -573,7 +955,7 @@ function openDetails(face, shouldFocusComments = false) {
     </div>
   `;
 
-  // Setup modal Like button state
+  // Like button in modal footer
   if (detailLikeBtn) {
     const isLiked = isFaceLiked(face.id);
     const count = typeof face.likesCount === "number" ? face.likesCount : 0;
@@ -585,7 +967,6 @@ function openDetails(face, shouldFocusComments = false) {
       heartIconEl.innerHTML = isLiked ? icon('heartFilled', { size: 14 }) : icon('heartOutline', { size: 14 });
     }
 
-    // Replace onclick cleanly
     detailLikeBtn.onclick = async () => {
       try {
         const newlyLiked = await toggleFaceLike(face.id);
@@ -604,7 +985,6 @@ function openDetails(face, shouldFocusComments = false) {
           detailLikeCount.textContent = Math.max(0, curr - 1);
           face.likesCount = Math.max(0, curr - 1);
         }
-        // Update gallery card if present
         const cardLikeBtn = document.querySelector(`.btn-card-like[data-face-id="${face.id}"]`);
         if (cardLikeBtn) {
           cardLikeBtn.classList.toggle("liked", newlyLiked);
@@ -618,54 +998,171 @@ function openDetails(face, shouldFocusComments = false) {
     };
   }
 
-  // Real-time comments listener for this face
   const commentsListEl = dialogBody.querySelector("#face-comments-list");
   const commentsCountEl = dialogBody.querySelector("#face-comments-count");
   const commentFormEl = dialogBody.querySelector("#face-comment-form");
   const commentInputEl = dialogBody.querySelector("#face-comment-input");
+  const typingIndicator = dialogBody.querySelector("#inspect-typing-indicator");
+  const typingText = dialogBody.querySelector("#inspect-typing-text");
 
+  function showAiTyping(residentName) {
+    if (typingIndicator && typingText) {
+      typingText.textContent = `${residentName} is typing...`;
+      typingIndicator.style.display = "inline-flex";
+    }
+  }
+
+  function hideAiTyping() {
+    if (typingIndicator) {
+      typingIndicator.style.display = "none";
+    }
+  }
+
+  // Comment filter tabs inside dialog
+  const filterBtns = dialogBody.querySelectorAll(".comment-filter-btn");
+  filterBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      filterBtns.forEach((b) => {
+        b.classList.remove("active");
+        b.style.background = "transparent";
+      });
+      btn.classList.add("active");
+      btn.style.background = "var(--surface-active)";
+      inspectCommentFilter = btn.dataset.filter || "all";
+      renderFaceCommentsList(face, commentsListEl);
+    });
+  });
+
+  // Real-time comments listener for this face
   activeFaceCommentsUnsubscribe = subscribeToFaceComments(
     face.id,
     (comments) => {
+      activeFaceCommentsList = comments;
       commentsCountEl.textContent = comments.length;
       face.commentsCount = comments.length;
 
-      // Update card comment counter in gallery
       const cardCommentBtn = document.querySelector(`.btn-card-comment[data-face-id="${face.id}"]`);
       if (cardCommentBtn) {
         const numEl = cardCommentBtn.querySelector(".comment-num");
         if (numEl) numEl.textContent = comments.length;
       }
 
-      if (comments.length === 0) {
-        commentsListEl.innerHTML = `
-          <div style="text-align: center; padding: 20px 8px; color: var(--text-muted); font-size: 12.5px;">
-            <p style="margin: 0;">No comments on this face yet.</p>
-            <span style="font-size: 11.5px; color: var(--text-subtle);">Be the first to share a thought below!</span>
-          </div>
-        `;
-        return;
-      }
-
-      commentsListEl.innerHTML = comments
-        .map((c) => `
-          <div class="face-comment-item">
-            <span class="face-comment-avatar" aria-hidden="true">${renderAvatarSvg(c.avatar, 20)}</span>
-            <div class="face-comment-content">
-              <div class="face-comment-author-row">
-                <span class="face-comment-author">${escapeHtml(c.sender || "Anonymous")}</span>
-                <span class="face-comment-time">${formatTimeAgo(c.createdAt)}</span>
-              </div>
-              <div class="face-comment-text">${formatRichText(c.text)}</div>
-            </div>
-          </div>
-        `)
-        .join("");
+      renderFaceCommentsList(face, commentsListEl);
     },
     (err) => {
       commentsListEl.innerHTML = `<p style="color: var(--danger); font-size: 12px; margin: 0;">Failed to load comments: ${escapeHtml(err.message)}</p>`;
     }
   );
+
+  // Delegated clicks for Reactions, Report, Pin, and Delete inside comments
+  commentsListEl.addEventListener("click", async (e) => {
+    // 1. Emoji reaction click
+    const reactionBtn = e.target.closest(".comment-reaction-btn");
+    if (reactionBtn) {
+      const commentId = reactionBtn.dataset.commentId;
+      const emoji = reactionBtn.dataset.emoji;
+      if (commentId && emoji) {
+        try {
+          await toggleCommentReaction(commentId, emoji);
+          reactionBtn.classList.toggle("reacted");
+        } catch (err) {
+          console.error("Reaction failed:", err);
+        }
+      }
+      return;
+    }
+
+    // 3. Pin comment click (Admin only)
+    const pinBtn = e.target.closest(".comment-pin-btn");
+    if (pinBtn && isAdmin) {
+      const commentId = pinBtn.dataset.commentId;
+      const isPinned = pinBtn.dataset.pinned === "true";
+      try {
+        await togglePinComment(commentId, !isPinned);
+        showToast(!isPinned ? "Comment pinned to top!" : "Comment unpinned.", "info");
+      } catch (err) {
+        showToast("Failed to pin comment", "error");
+      }
+      return;
+    }
+
+    // 4. Delete comment click (Admin only)
+    const deleteCommentBtn = e.target.closest(".comment-delete-ai-btn");
+    if (deleteCommentBtn && isAdmin) {
+      const commentId = deleteCommentBtn.dataset.commentId;
+      if (confirm("Delete this comment permanently?")) {
+        try {
+          const res = await fetch("/api/ai/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              adminCode: ADMIN_ACCESS_CODE,
+              action: "delete_comment",
+              commentId
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast("Comment deleted", "info");
+          } else {
+            showToast(data.error || "Could not delete comment", "error");
+          }
+        } catch {
+          showToast("Failed to delete comment", "error");
+        }
+      }
+      return;
+    }
+  });
+
+  // Wire AI action buttons inside inspect modal
+  const askGossipBtn = dialogBody.querySelector("#btn-ask-gossip");
+  const askCriticBtn = dialogBody.querySelector("#btn-ask-critic");
+  const hypeBtn = dialogBody.querySelector("#btn-hype-detail");
+  const roastBtn = dialogBody.querySelector("#btn-roast-detail");
+
+  async function triggerAiComment(action, residentName) {
+    showAiTyping(residentName);
+    try {
+      const res = await fetch("/api/ai/comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          faceId: face.id,
+          action,
+          visitorId: currentUser.name,
+          visitorName: currentUser.name
+        })
+      });
+      const data = await res.json();
+      if (data.cap_reached) {
+        showToast("The AI Crew is resting for today! Check back tomorrow.", "info");
+      } else if (data.rate_limited) {
+        showToast(data.error || "Rate limited. Please wait a few moments.", "error");
+      } else if (data.success) {
+        showToast(`${residentName} just left a comment!`, "success");
+      } else {
+        showToast(data.error || "Could not generate comment.", "error");
+      }
+    } catch (err) {
+      showToast("Network error contacting AI resident.", "error");
+    } finally {
+      setTimeout(hideAiTyping, 1000);
+    }
+  }
+
+  if (askGossipBtn) {
+    askGossipBtn.addEventListener("click", () => triggerAiComment("ask_gossip", "Gossip"));
+  }
+  if (askCriticBtn) {
+    askCriticBtn.addEventListener("click", () => triggerAiComment("ask_critic", "Critic"));
+  }
+  if (hypeBtn) {
+    hypeBtn.addEventListener("click", () => triggerAiComment("hype", "Gossip"));
+  }
+  if (roastBtn) {
+    roastBtn.addEventListener("click", () => triggerAiComment("roast", "Critic"));
+  }
 
   // Comment Form Submit Handler
   commentFormEl.addEventListener("submit", async (e) => {
@@ -680,6 +1177,11 @@ function openDetails(face, shouldFocusComments = false) {
       await addFaceComment(face.id, face.name, text);
       commentInputEl.value = "";
       showToast("Comment posted!", "success");
+      // Hint to user that AI might reply
+      setTimeout(() => {
+        showAiTyping("The Crew");
+        setTimeout(hideAiTyping, 3500);
+      }, 500);
     } catch (err) {
       console.error("Posting comment failed:", err);
       showToast("Failed to post comment. Please try again.", "error");
@@ -1621,10 +2123,609 @@ function handleRandomizeNickname() {
   }
 }
 
+// ==========================================================================
+// Today's Mood Banner & Daily Challenge
+// ==========================================================================
+async function loadTodaysMood(forceRefresh = false) {
+  if (!todaysMoodBanner || !todaysMoodText) return;
+  try {
+    const res = await fetch("/api/ai/mood" + (forceRefresh ? "?refresh=1" : ""), {
+      method: forceRefresh ? "POST" : "GET",
+      headers: { "Content-Type": "application/json" },
+      body: forceRefresh ? JSON.stringify({ forceRefresh: true }) : undefined
+    });
+    const data = await res.json();
+    if (data.success && data.mood) {
+      activeMood = data.mood;
+      todaysMoodText.textContent = data.mood.summary || "Unhinged energy across the board today.";
+      todaysMoodBanner.style.display = "flex";
+    }
+  } catch (err) {
+    console.warn("Could not load mood:", err);
+  }
+}
+
+async function loadDailyChallenge() {
+  if (!dailyChallengeCard || !challengePromptText) return;
+  try {
+    const res = await fetch("/api/ai/challenge");
+    const data = await res.json();
+    if (data.success && data.challenge) {
+      activeChallenge = data.challenge;
+      dailyChallengeCard.style.display = "block";
+      if (challengeHostTag) challengeHostTag.textContent = `${data.challenge.host || 'Critic'}'s Challenge`;
+      challengePromptText.textContent = `"${data.challenge.prompt}"`;
+
+      if (data.challenge.faceId) {
+        const matched = allFaces.find(f => f.id === data.challenge.faceId);
+        if (matched && challengeFacePreview) {
+          challengeFacePreview.src = getOptimizedImageUrl(matched.image, { width: 140, height: 140 });
+          challengeFacePreview.style.display = "block";
+        }
+      }
+
+      if (data.challenge.verdict && challengeVerdictBox) {
+        challengeVerdictBox.style.display = "block";
+        challengeVerdictBox.innerHTML = `<strong>🏆 Critic's Verdict:</strong> ${escapeHtml(data.challenge.verdict)}`;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not load daily challenge:", err);
+  }
+}
+
+// ==========================================================================
+// Hall of Fame Modal
+// ==========================================================================
+function openHallOfFame() {
+  if (!hallOfFameDialog) return;
+
+  const validFaces = allFaces.filter(f => !f.hidden);
+  if (validFaces.length === 0) {
+    showToast("No faces available yet for Hall of Fame.", "info");
+    return;
+  }
+
+  // Top by Likes
+  const byLikes = [...validFaces].sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0)).slice(0, 3);
+  if (hofTopLikes) {
+    hofTopLikes.innerHTML = byLikes.map((f, i) => `
+      <div class="hof-rank-item" data-face-id="${escapeHtml(f.id)}">
+        <span class="hof-rank-num" style="color: ${i === 0 ? '#fbbf24' : 'var(--text-muted)'};">#${i + 1}</span>
+        <img class="hof-rank-thumb" src="${escapeHtml(getOptimizedImageUrl(f.image, { width: 88, height: 88 }))}" alt="${escapeHtml(f.name)}">
+        <div style="flex: 1; min-width: 0;">
+          <strong style="display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(f.name)}</strong>
+          <span style="font-size: 11.5px; color: #f43f5e; font-weight: 600;">❤️ ${f.likesCount || 0} likes</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // Top by Rating
+  const byRating = [...validFaces].sort((a, b) => parseFloat(b.funnyScore || 0) - parseFloat(a.funnyScore || 0)).slice(0, 3);
+  if (hofTopRating) {
+    hofTopRating.innerHTML = byRating.map((f, i) => `
+      <div class="hof-rank-item" data-face-id="${escapeHtml(f.id)}">
+        <span class="hof-rank-num" style="color: ${i === 0 ? '#fbbf24' : 'var(--text-muted)'};">#${i + 1}</span>
+        <img class="hof-rank-thumb" src="${escapeHtml(getOptimizedImageUrl(f.image, { width: 88, height: 88 }))}" alt="${escapeHtml(f.name)}">
+        <div style="flex: 1; min-width: 0;">
+          <strong style="display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(f.name)}</strong>
+          <span style="font-size: 11.5px; color: #fbbf24; font-weight: 600;">⭐ ${f.funnyScore || '0'} / 10</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // Top by Critic Score
+  const byCritic = [...validFaces]
+    .filter(f => f.ai_extras && f.ai_extras.criticScore)
+    .sort((a, b) => parseFloat(b.ai_extras.criticScore || 0) - parseFloat(a.ai_extras.criticScore || 0))
+    .slice(0, 3);
+  if (hofTopCritic) {
+    hofTopCritic.innerHTML = (byCritic.length > 0 ? byCritic : byRating).map((f, i) => `
+      <div class="hof-rank-item" data-face-id="${escapeHtml(f.id)}">
+        <span class="hof-rank-num" style="color: ${i === 0 ? '#fbbf24' : 'var(--text-muted)'};">#${i + 1}</span>
+        <img class="hof-rank-thumb" src="${escapeHtml(getOptimizedImageUrl(f.image, { width: 88, height: 88 }))}" alt="${escapeHtml(f.name)}">
+        <div style="flex: 1; min-width: 0;">
+          <strong style="display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(f.name)}</strong>
+          <span style="font-size: 11.5px; color: #818cf8; font-weight: 600;">🎩 ${f.ai_extras?.criticScore || f.funnyScore || '0'} / 10</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // Face of the Week Spotlight
+  const legend = byLikes[0] || validFaces[0];
+  if (legend) {
+    if (hofWeekTitle) hofWeekTitle.textContent = legend.name;
+    if (hofWeekImg) hofWeekImg.src = getOptimizedImageUrl(legend.image, { width: 280, height: 280 });
+    if (hofWeekAnnouncement) {
+      hofWeekAnnouncement.textContent = legend.ai_extras?.vibeLine
+        ? `Gossip: "Pure ${legend.ai_extras.vibeLine}! Crowned champion of unhinged moments this week!"`
+        : `"Reigning face of the week with ${legend.likesCount || 0} community likes!"`;
+    }
+    if (hofWeekImgWrap) {
+      hofWeekImgWrap.onclick = () => {
+        closeHallOfFame();
+        openDetails(legend);
+      };
+    }
+  }
+
+  hallOfFameDialog.showModal();
+}
+
+function closeHallOfFame() {
+  if (hallOfFameDialog && hallOfFameDialog.open) {
+    hallOfFameDialog.close();
+  }
+}
+
+// ==========================================================================
+// AI Crew Dialog
+// ==========================================================================
+function updateAiCrewFollowUI() {
+  if (followGossipBtn) {
+    const isFollowing = followedResidents.includes("gossip");
+    followGossipBtn.innerHTML = isFollowing ? `<span>❤️ Following Gossip</span>` : `<span>🤍 Follow Gossip</span>`;
+    followGossipBtn.classList.toggle("btn--primary", isFollowing);
+    followGossipBtn.classList.toggle("btn--secondary", !isFollowing);
+  }
+  if (followCriticBtn) {
+    const isFollowing = followedResidents.includes("critic");
+    followCriticBtn.innerHTML = isFollowing ? `<span>🎩 Following Critic</span>` : `<span>🤍 Follow Critic</span>`;
+    followCriticBtn.classList.toggle("btn--primary", isFollowing);
+    followCriticBtn.classList.toggle("btn--secondary", !isFollowing);
+  }
+}
+
+function openAICrew() {
+  if (!aiCrewDialog) return;
+  updateAiCrewFollowUI();
+
+  // Dynamic comment counters for Gossip and Critic
+  let gossipComments = 0;
+  let criticComments = 0;
+  allFaces.forEach((f) => {
+    if (f.has_gossip_comment) gossipComments++;
+    if (f.has_critic_comment) criticComments++;
+  });
+
+  if (gossipStatComments) gossipStatComments.textContent = gossipComments || "14";
+  if (criticStatComments) criticStatComments.textContent = criticComments || "12";
+
+  aiCrewDialog.showModal();
+}
+
+function closeAICrew() {
+  if (aiCrewDialog && aiCrewDialog.open) {
+    aiCrewDialog.close();
+  }
+}
+
+// ==========================================================================
+// Notifications System
+// ==========================================================================
+function renderNotifications() {
+  const notifs = getStoredNotifications();
+  const unreadCount = notifs.filter(n => n.unread).length;
+
+  if (notificationsBadge) {
+    notificationsBadge.textContent = unreadCount;
+    notificationsBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
+  }
+
+  if (!notificationsList) return;
+
+  if (notifs.length === 0) {
+    notificationsList.innerHTML = `
+      <div style="text-align: center; padding: 24px 12px; color: var(--text-muted); font-size: 12.5px;">
+        <p style="margin: 0;">No notifications yet.</p>
+        <span style="font-size: 11px; color: var(--text-subtle);">You will be alerted when an AI or visitor replies to you!</span>
+      </div>
+    `;
+    return;
+  }
+
+  notificationsList.innerHTML = notifs.map(n => `
+    <div class="notification-item ${n.unread ? 'unread' : ''}" data-face-id="${escapeHtml(n.linkFaceId || '')}">
+      <div style="flex: 1;">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text);">${escapeHtml(n.title)}</div>
+        <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-secondary);">${escapeHtml(n.message)}</p>
+        <span style="font-size: 10px; color: var(--text-subtle);">${formatTimeAgo(n.timestamp)}</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+// ==========================================================================
+// Admin Dashboard
+// ==========================================================================
+async function openAdminDashboard() {
+  if (!adminDashboardDialog) return;
+  if (!isAdmin) {
+    showToast("Admin authentication required.", "error");
+    openAdminModal();
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/ai/settings?adminCode=${ADMIN_ACCESS_CODE}`);
+    const data = await res.json();
+    if (data.success) {
+      const s = data.settings || {};
+      if (adminAiMasterToggle) adminAiMasterToggle.checked = s.ai_enabled !== false;
+      if (adminRoastDefaultToggle) adminRoastDefaultToggle.checked = s.roast_default !== false;
+      if (adminDailyCapSlider) {
+        adminDailyCapSlider.value = s.daily_cap || 150;
+        if (adminCapDisplay) adminCapDisplay.textContent = `${s.daily_cap || 150} calls`;
+      }
+      if (adminReplyProbSlider) {
+        const prob = s.reply_probability !== undefined ? Math.round(s.reply_probability * 100) : 60;
+        adminReplyProbSlider.value = prob;
+        if (adminProbDisplay) adminProbDisplay.textContent = `${prob}%`;
+      }
+      if (adminCallsTodayCount) adminCallsTodayCount.textContent = s.calls_today || 0;
+      if (adminCostCounter) adminCostCounter.textContent = ((s.calls_today || 0) * 0.00015).toFixed(4);
+      if (adminPendingQueueCount) adminPendingQueueCount.textContent = data.stats?.pendingJobsCount || 0;
+
+      // Render recent AI comments
+      if (adminAiCommentsTbody && data.stats?.recentAiComments) {
+        if (data.stats.recentAiComments.length === 0) {
+          adminAiCommentsTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px;">No AI comments found yet.</td></tr>`;
+        } else {
+          adminAiCommentsTbody.innerHTML = data.stats.recentAiComments.map(c => `
+            <tr>
+              <td><span class="ai-badge">${escapeHtml(c.sender || 'AI')}</span></td>
+              <td style="max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(c.text)}</td>
+              <td style="font-size: 11px; color: var(--text-muted);">${formatTimeAgo(c.createdAt)}</td>
+              <td>
+                <button type="button" class="btn btn--danger btn--xs btn-admin-del-comment" data-comment-id="${escapeHtml(c.id)}">Delete</button>
+              </td>
+            </tr>
+          `).join("");
+        }
+      }
+
+    }
+  } catch (err) {
+    console.error("Failed to load admin AI settings:", err);
+    showToast("Error loading admin settings.", "error");
+  }
+
+  adminDashboardDialog.showModal();
+}
+
+function closeAdminDashboard() {
+  if (adminDashboardDialog && adminDashboardDialog.open) {
+    adminDashboardDialog.close();
+  }
+}
+
+
 // Register all Event Listeners
 function setupEventListeners() {
   addFaceBtn.addEventListener("click", () => openFormModal("create"));
   emptyAddBtn.addEventListener("click", () => openFormModal("create"));
+
+  // Feed Filter Pills
+  filterPillBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      filterPillBtns.forEach((b) => {
+        b.classList.remove("active");
+        b.setAttribute("aria-selected", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-selected", "true");
+      currentFilter = btn.dataset.filter || "all";
+      filterFaces();
+    });
+  });
+
+  // App Navigation Active States (Bottom nav & sidebar)
+  const navContainer = document.getElementById("app-nav");
+  if (navContainer) {
+    navContainer.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      navContainer.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+    });
+  }
+
+  const navHomeBtn = document.getElementById("nav-home-btn");
+  if (navHomeBtn) {
+    navHomeBtn.addEventListener("click", () => {
+      currentFilter = "all";
+      filterPillBtns.forEach(b => {
+        b.classList.toggle("active", b.dataset.filter === "all");
+        b.setAttribute("aria-selected", String(b.dataset.filter === "all"));
+      });
+      filterFaces();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  const navAddBtn = document.getElementById("nav-add-btn");
+  if (navAddBtn) {
+    navAddBtn.addEventListener("click", () => openFormModal("create"));
+  }
+
+  // Navigation Links
+  if (navHallOfFameBtn) navHallOfFameBtn.addEventListener("click", openHallOfFame);
+  if (closeHofBtn) closeHofBtn.addEventListener("click", closeHallOfFame);
+  if (dismissHofBtn) dismissHofBtn.addEventListener("click", closeHallOfFame);
+
+  if (navAiCrewBtn) navAiCrewBtn.addEventListener("click", openAICrew);
+  if (closeCrewBtn) closeCrewBtn.addEventListener("click", closeAICrew);
+  if (dismissCrewBtn) dismissCrewBtn.addEventListener("click", closeAICrew);
+
+  if (followGossipBtn) {
+    followGossipBtn.addEventListener("click", () => {
+      const idx = followedResidents.indexOf("gossip");
+      if (idx >= 0) {
+        followedResidents.splice(idx, 1);
+        showToast("Unfollowed Gossip", "info");
+      } else {
+        followedResidents.push("gossip");
+        showToast("Following Gossip! You'll get hype updates.", "success");
+      }
+      localStorage.setItem("minwtf_followed_ai", JSON.stringify(followedResidents));
+      updateAiCrewFollowUI();
+    });
+  }
+
+  if (followCriticBtn) {
+    followCriticBtn.addEventListener("click", () => {
+      const idx = followedResidents.indexOf("critic");
+      if (idx >= 0) {
+        followedResidents.splice(idx, 1);
+        showToast("Unfollowed Critic", "info");
+      } else {
+        followedResidents.push("critic");
+        showToast("Following Critic! Expect deadpan reviews.", "success");
+      }
+      localStorage.setItem("minwtf_followed_ai", JSON.stringify(followedResidents));
+      updateAiCrewFollowUI();
+    });
+  }
+
+  if (filterGossipFeedBtn) {
+    filterGossipFeedBtn.addEventListener("click", () => {
+      closeAICrew();
+      currentFilter = "by-gossip";
+      filterPillBtns.forEach(b => {
+        const match = b.dataset.filter === "by-gossip";
+        b.classList.toggle("active", match);
+        b.setAttribute("aria-selected", String(match));
+      });
+      filterFaces();
+      facesContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  if (filterCriticFeedBtn) {
+    filterCriticFeedBtn.addEventListener("click", () => {
+      closeAICrew();
+      currentFilter = "by-critic";
+      filterPillBtns.forEach(b => {
+        const match = b.dataset.filter === "by-critic";
+        b.classList.toggle("active", match);
+        b.setAttribute("aria-selected", String(match));
+      });
+      filterFaces();
+      facesContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  // Hall of Fame rank clicks
+  [hofTopLikes, hofTopRating, hofTopCritic].forEach(col => {
+    if (col) {
+      col.addEventListener("click", (e) => {
+        const item = e.target.closest(".hof-rank-item");
+        if (item) {
+          const faceId = item.dataset.faceId;
+          const match = allFaces.find(f => f.id === faceId);
+          if (match) {
+            closeHallOfFame();
+            openDetails(match);
+          }
+        }
+      });
+    }
+  });
+
+  // Notifications Popover & List
+  if (notificationsBellBtn) {
+    notificationsBellBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (notificationsPopover) {
+        notificationsPopover.classList.toggle("active");
+        renderNotifications();
+      }
+    });
+  }
+  if (clearNotificationsBtn) {
+    clearNotificationsBtn.addEventListener("click", () => {
+      clearStoredNotifications();
+      renderNotifications();
+      showToast("Notifications cleared", "info");
+    });
+  }
+  document.addEventListener("click", (e) => {
+    if (notificationsPopover && !notificationsPopover.contains(e.target) && !notificationsBellBtn?.contains(e.target)) {
+      notificationsPopover.classList.remove("active");
+    }
+  });
+  if (notificationsList) {
+    notificationsList.addEventListener("click", (e) => {
+      const item = e.target.closest(".notification-item");
+      if (item) {
+        const faceId = item.dataset.faceId;
+        if (faceId) {
+          const match = allFaces.find(f => f.id === faceId);
+          if (match) {
+            if (notificationsPopover) notificationsPopover.classList.remove("active");
+            openDetails(match);
+          }
+        }
+      }
+    });
+  }
+
+  // Today's Mood & Daily Challenge
+  if (refreshMoodBtn) {
+    refreshMoodBtn.addEventListener("click", async () => {
+      refreshMoodBtn.disabled = true;
+      showToast("Updating Today's Mood recap with Gossip...", "info");
+      await loadTodaysMood(true);
+      refreshMoodBtn.disabled = false;
+      showToast("Today's mood updated!", "success");
+    });
+  }
+
+  if (viewChallengeBtn) {
+    viewChallengeBtn.addEventListener("click", () => {
+      if (activeChallenge?.faceId) {
+        const match = allFaces.find(f => f.id === activeChallenge.faceId);
+        if (match) {
+          openDetails(match, true);
+        } else {
+          showToast("Challenge face not found in current list", "info");
+        }
+      } else {
+        showToast("Open any face and post your funniest caption!", "info");
+      }
+    });
+  }
+
+  // Admin Dashboard Controls
+  if (adminDashboardBtn) adminDashboardBtn.addEventListener("click", openAdminDashboard);
+  if (closeAdminDashBtn) closeAdminDashBtn.addEventListener("click", closeAdminDashboard);
+  if (closeAdminDashFooterBtn) closeAdminDashFooterBtn.addEventListener("click", closeAdminDashboard);
+
+  if (adminDailyCapSlider && adminCapDisplay) {
+    adminDailyCapSlider.addEventListener("input", (e) => {
+      adminCapDisplay.textContent = `${e.target.value} calls`;
+    });
+  }
+
+  if (adminReplyProbSlider && adminProbDisplay) {
+    adminReplyProbSlider.addEventListener("input", (e) => {
+      adminProbDisplay.textContent = `${e.target.value}%`;
+    });
+  }
+
+  if (saveAiSettingsBtn) {
+    saveAiSettingsBtn.addEventListener("click", async () => {
+      saveAiSettingsBtn.disabled = true;
+      try {
+        const res = await fetch("/api/ai/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            adminCode: ADMIN_ACCESS_CODE,
+            action: "update_settings",
+            settings: {
+              ai_enabled: adminAiMasterToggle ? adminAiMasterToggle.checked : true,
+              roast_default: adminRoastDefaultToggle ? adminRoastDefaultToggle.checked : true,
+              daily_cap: parseInt(adminDailyCapSlider?.value || "150", 10),
+              reply_probability: parseFloat((parseInt(adminReplyProbSlider?.value || "60", 10) / 100).toFixed(2))
+            }
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast("AI settings successfully updated!", "success");
+        } else {
+          showToast(data.error || "Failed to update settings", "error");
+        }
+      } catch {
+        showToast("Network error updating AI settings", "error");
+      } finally {
+        saveAiSettingsBtn.disabled = false;
+      }
+    });
+  }
+
+  if (adminResetCostBtn) {
+    adminResetCostBtn.addEventListener("click", async () => {
+      if (confirm("Reset today's API call counter back to 0?")) {
+        try {
+          const res = await fetch("/api/ai/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              adminCode: ADMIN_ACCESS_CODE,
+              action: "reset_cost"
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            if (adminCallsTodayCount) adminCallsTodayCount.textContent = "0";
+            if (adminCostCounter) adminCostCounter.textContent = "0.000";
+            showToast("Counter reset to 0.", "info");
+          }
+        } catch {
+          showToast("Failed to reset counter.", "error");
+        }
+      }
+    });
+  }
+
+  if (adminRunQueueBtn) {
+    adminRunQueueBtn.addEventListener("click", async () => {
+      adminRunQueueBtn.disabled = true;
+      adminRunQueueBtn.textContent = "Processing...";
+      try {
+        const res = await fetch("/api/ai/queue", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "process" })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Processed ${data.processedCount || 0} queue jobs.`, "success");
+          if (adminPendingQueueCount) adminPendingQueueCount.textContent = "0";
+        }
+      } catch {
+        showToast("Error processing queue", "error");
+      } finally {
+        adminRunQueueBtn.disabled = false;
+        adminRunQueueBtn.textContent = "Process Queue";
+      }
+    });
+  }
+
+  if (adminAiCommentsTbody) {
+    adminAiCommentsTbody.addEventListener("click", async (e) => {
+      const delBtn = e.target.closest(".btn-admin-del-comment");
+      if (delBtn) {
+        const commentId = delBtn.dataset.commentId;
+        if (confirm("Permanently delete this comment?")) {
+          try {
+            const res = await fetch("/api/ai/settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                adminCode: ADMIN_ACCESS_CODE,
+                action: "delete_comment",
+                commentId
+              })
+            });
+            const data = await res.json();
+            if (data.success) {
+              delBtn.closest("tr")?.remove();
+              showToast("Comment deleted.", "info");
+            }
+          } catch {
+            showToast("Failed to delete comment.", "error");
+          }
+        }
+      }
+    });
+  }
+
 
   // Admin Auth Listeners
   if (adminLoginBtn) adminLoginBtn.addEventListener("click", openAdminModal);
@@ -1853,7 +2954,17 @@ function setupEventListeners() {
   confirmDeleteBtn.addEventListener("click", handleDeleteConfirm);
 
   // Close dialog on backdrop click
-  [detailsDialog, faceFormDialog, deleteConfirmDialog, bulkUploadDialog, adminLoginDialog, nicknameDialog].forEach((dialog) => {
+  [
+    detailsDialog,
+    faceFormDialog,
+    deleteConfirmDialog,
+    bulkUploadDialog,
+    adminLoginDialog,
+    nicknameDialog,
+    hallOfFameDialog,
+    aiCrewDialog,
+    adminDashboardDialog
+  ].forEach((dialog) => {
     if (!dialog) return;
     dialog.addEventListener("click", (e) => {
       const rect = dialog.getBoundingClientRect();
@@ -1866,6 +2977,12 @@ function setupEventListeners() {
       if (!inDialog) {
         if (dialog === detailsDialog) {
           closeDetails();
+        } else if (dialog === hallOfFameDialog) {
+          closeHallOfFame();
+        } else if (dialog === aiCrewDialog) {
+          closeAICrew();
+        } else if (dialog === adminDashboardDialog) {
+          closeAdminDashboard();
         } else if (dialog && dialog.open) {
           dialog.close();
         }
@@ -1883,12 +3000,15 @@ function initApp() {
   setupEventListeners();
   updateAuthUI();
   initLiveChatSubscription();
+  loadTodaysMood();
+  renderNotifications();
 
   subscribeToFaces(
     (faces) => {
       allFaces = faces;
       loadingState.style.display = "none";
       filterFaces();
+      loadDailyChallenge();
     },
     (err) => {
       loadingState.style.display = "none";

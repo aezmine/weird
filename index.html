@@ -3,76 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-  <title>MinWTF web</title>
-  <meta name="description" content="MinWTF web — weird faces, questionable expressions, and real-time live chat.">
+  <title>MinWTF - Sketch Wireframe</title>
+  <meta name="description" content="MinWTF — unhinged faces, weird moments and live banter.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Architects+Daughter&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Theme Toggle -->
-  <button class="theme-toggle" id="themebtn" aria-pressed="false" title="Toggle theme">
-    <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="5"></circle>
-      <line x1="12" y1="1" x2="12" y2="3"></line>
-      <line x1="12" y1="21" x2="12" y2="23"></line>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-      <line x1="1" y1="12" x2="3" y2="12"></line>
-      <line x1="21" y1="12" x2="23" y2="12"></line>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-    </svg>
-    <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-    </svg>
-    <span class="sr-only">Toggle color theme</span>
-  </button>
+  <!-- Reusable SVG Symbols (Source: docs/designpreview.html) -->
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="home" viewBox="0 0 24 24">
+      <path d="M3 12 12 3l9 9M6 10v10h4v-6h4v6h4V10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+    </symbol>
+    <symbol id="bag" viewBox="0 0 24 24">
+      <path d="M5 9h14l1 12H4zM9 9V6a3 3 0 0 1 6 0v3" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="heart" viewBox="0 0 24 24">
+      <path d="M12 21C4 15 2 11 2 8a5 5 0 0 1 10-1 5 5 0 0 1 10 1c0 3-2 7-10 13z" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="user" viewBox="0 0 24 24">
+      <circle cx="12" cy="6" r="3.5" fill="currentColor" />
+      <path d="M5 22c0-6 2-9 7-9s7 3 7 9z" fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="bell" viewBox="0 0 24 24">
+      <path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+    </symbol>
+    <symbol id="arrow" viewBox="0 0 28 12">
+      <path d="M1 6h24M19 1l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+  </svg>
 
   <!-- Main Application Container -->
   <div class="app-layout">
     
-    <!-- Application Header -->
-    <header class="masthead">
-      <div class="masthead-info">
-        <div class="brand-row">
-          <span class="brand-icon" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5 4 12 8 12s8-7 8-12a8 8 0 0 0-8-8z"/><path d="M9 10a1.5 1.5 0 0 0-1.5 1.5c0 1 1 2 2 1.5"/><path d="M15 10a1.5 1.5 0 0 1 1.5 1.5c0 1-1 2-2 1.5"/><path d="M11 16h2"/></svg>
-          </span>
-          <h1>MinWTF <span class="brand-web-tag">web</span></h1>
-        </div>
-        <p>unhinged faces, weird moments & live banter</p>
-      </div>
-      <div class="masthead-actions">
-        <div id="admin-auth-bar" class="admin-auth-bar">
-          <button id="admin-login-btn" class="btn btn--ghost btn--sm" title="Admin Login">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span>Admin</span>
+    <!-- Navigation: Bottom Nav on Mobile / Left Sidebar on Desktop (>= 900px) -->
+    <nav class="app-nav" id="app-nav" data-nav aria-label="Main Navigation">
+      <div class="app-nav-brand">MinWTF</div>
+      <button type="button" class="nav-btn on" id="nav-home-btn" title="Gallery" aria-label="Gallery">
+        <svg><use href="#home" /></svg>
+        <span class="nav-label">Gallery</span>
+      </button>
+      <button type="button" class="nav-btn" id="nav-add-btn" title="Add Face" aria-label="Add Face">
+        <svg><use href="#bag" /></svg>
+        <span class="nav-label">Add Face</span>
+      </button>
+      <button type="button" class="nav-btn" id="nav-hall-of-fame-btn" title="Hall of Fame" aria-label="Hall of Fame">
+        <svg><use href="#heart" /></svg>
+        <span class="nav-label">Hall of Fame</span>
+      </button>
+      <button type="button" class="nav-btn" id="nav-ai-crew-btn" title="AI Crew" aria-label="AI Crew">
+        <svg><use href="#user" /></svg>
+        <span class="nav-label">AI Crew</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="main-content-area">
+      
+      <!-- Top Bar matching Preview -->
+      <header class="top">
+        <span class="logo">MinWTF</span>
+        <span class="bar"></span>
+        
+        <div class="top-actions">
+          <!-- Notifications Bell Popover -->
+          <div class="notifications-btn-wrap">
+            <button id="notifications-bell-btn" class="top-icon-btn" title="Notifications" aria-label="View notifications">
+              <svg><use href="#bell" /></svg>
+              <span id="notifications-badge" class="notifications-badge" style="display: none;">0</span>
+            </button>
+            <div id="notifications-popover" class="notifications-popover" role="region" aria-label="Notifications list">
+              <div class="notifications-header">
+                <h4>Notifications</h4>
+                <button id="clear-notifications-btn" class="btn btn--ghost btn--xs">Clear</button>
+              </div>
+              <div id="notifications-list" class="notifications-list">
+                <p style="padding: 16px; margin: 0; color: var(--soft); font-size: 14px; text-align: center;">No new notifications</p>
+              </div>
+            </div>
+          </div>
+
+          <button id="toggle-chat-header-btn" class="btn sm" title="Toggle Live Chat">
+            <span>Chat</span>
+            <span id="header-chat-badge" class="header-chat-badge" style="display: none;">0</span>
           </button>
-          <div id="admin-status-pill" class="admin-status-pill" style="display: none;">
+          <button id="bulk-upload-btn" class="btn sm" title="Upload multiple photos">Bulk</button>
+          <button id="add-face-btn" class="btn sm btn--primary" title="Add a face">Add +</button>
+          <button id="admin-login-btn" class="btn sm" title="Admin Login">Admin</button>
+          <div id="admin-status-pill" class="admin-status-pill" style="display: none;" title="Admin Controls">
             <span class="admin-dot" aria-hidden="true"></span>
-            <span class="admin-label">Admin</span>
-            <button id="admin-logout-btn" class="btn btn--ghost btn--xs" title="Log out">Logout</button>
+            <button id="admin-dashboard-btn" class="btn sm" title="Open AI Controls Dashboard">Panel</button>
+            <button id="admin-logout-btn" class="btn sm" title="Log out">Exit</button>
           </div>
         </div>
-        <button id="toggle-chat-header-btn" class="btn btn--secondary btn-chat-toggle" title="Toggle Live Chat">
-          <span class="live-dot-inline" aria-hidden="true"></span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>Live Chat</span>
-          <span id="header-chat-badge" class="header-chat-badge" style="display: none;">0</span>
-        </button>
-        <button id="bulk-upload-btn" class="btn btn--secondary" title="Upload multiple photos">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M12 10v6"/><path d="m9 13 3-3 3 3"/></svg>
-          <span>Bulk Upload</span>
-        </button>
-        <button id="add-face-btn" class="btn btn--primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-          <span>Add Face</span>
-        </button>
-      </div>
-    </header>
+      </header>
 
     <!-- Configuration Alert Notice (hidden when ready) -->
     <div id="config-notice" class="config-banner" style="display: none;">
@@ -86,6 +112,44 @@
       
       <!-- Gallery Column -->
       <div class="gallery-column">
+
+        <!-- Today's Mood Banner (Gossip's 24h Site Chaos Recap) -->
+        <div id="todays-mood-banner" class="todays-mood-banner">
+          <span class="mood-badge">Today's Mood</span>
+          <span id="todays-mood-text" class="mood-text">Loading today's unhinged energy recap...</span>
+          <button type="button" id="refresh-mood-btn" class="mood-refresh-btn" title="Refresh mood from Gossip" aria-label="Refresh mood">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          </button>
+        </div>
+
+        <!-- Daily Challenge Card (AI Prompts + Critic Verdict) -->
+        <div id="daily-challenge-card" class="daily-challenge-card" style="display: none;">
+          <div class="challenge-header">
+            <div class="challenge-badge-row">
+              <span class="challenge-tag">Daily Challenge</span>
+              <span id="challenge-host-tag" class="challenge-host-tag">by Gossip</span>
+            </div>
+            <button type="button" id="view-challenge-btn" class="btn btn--secondary btn--xs">Participate in Comments</button>
+          </div>
+          <div class="challenge-body">
+            <img id="challenge-face-preview" class="challenge-face-preview" src="" alt="Daily Challenge Face" title="Click to view & comment on this face">
+            <div class="challenge-details">
+              <p id="challenge-prompt-text" class="challenge-prompt-text">Caption this face...</p>
+              <div id="challenge-verdict-box" class="challenge-verdict-box" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feed Filter Tabs (All, Most Liked, Highest Rated, Critic's Picks, Gossip comments, Critic comments) -->
+        <div class="gallery-filter-tabs" role="tablist" aria-label="Filter gallery faces">
+          <button type="button" class="filter-pill-btn active" data-filter="all" role="tab" aria-selected="true">All Faces</button>
+          <button type="button" class="filter-pill-btn" data-filter="most-liked" role="tab" aria-selected="false">Most Liked</button>
+          <button type="button" class="filter-pill-btn" data-filter="highest-rated" role="tab" aria-selected="false">Highest Rated</button>
+          <button type="button" class="filter-pill-btn" data-filter="critic-picks" role="tab" aria-selected="false">Critic Picks</button>
+          <button type="button" class="filter-pill-btn" data-filter="by-gossip" role="tab" aria-selected="false">Gossip Reacted</button>
+          <button type="button" class="filter-pill-btn" data-filter="by-critic" role="tab" aria-selected="false">Critic Judged</button>
+        </div>
+
         <!-- Gallery Controls (Search Bar & Count) -->
         <div class="gallery-controls">
           <div class="search-box">
@@ -263,8 +327,9 @@
         </form>
       </aside>
 
-    </div>
-  </div>
+    </div> <!-- /app-split-container -->
+  </div> <!-- /main-content-area -->
+</div> <!-- /app-layout -->
 
   <!-- Face Detail / Inspect Dialog -->
   <dialog id="details-dialog" class="app-dialog modal-lg">
@@ -557,6 +622,298 @@
           <button type="submit" id="save-nickname-btn" class="btn btn--primary">Save Profile</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- Hall of Fame Dialog -->
+  <dialog id="hall-of-fame-dialog" class="app-dialog modal-lg">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--ink);" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          </span>
+          <h3>MinWTF Hall of Fame</h3>
+        </div>
+        <button id="close-hof-btn" class="btn-icon" aria-label="Close dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="dialog-body">
+        <!-- Face of the Week Spotlight -->
+        <div id="hof-hero-spotlight" class="hof-hero-banner">
+          <span class="badge" style="background: #fbbf24; color: #000; font-weight: 800; margin-bottom: 8px;">👑 Face of the Week</span>
+          <h2 id="hof-week-title" style="margin: 6px 0 4px; font-size: 20px;">Loading legend...</h2>
+          <p id="hof-week-announcement" style="margin: 0 0 12px; font-size: 13.5px; color: var(--soft); font-style: italic;">
+            "An AI announcement is coming..."
+          </p>
+          <div id="hof-week-img-wrap" style="cursor: pointer; display: inline-block;">
+            <img id="hof-week-img" src="" alt="Face of the Week" style="width: 140px; height: 140px; border-radius: var(--wob2); object-fit: cover; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);">
+          </div>
+        </div>
+
+        <!-- 3 Columns: Likes, Star Rating, Critic Score -->
+        <div class="hof-sections-grid">
+          <div class="hof-column-card">
+            <h4 style="margin: 0 0 10px; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+              <span>❤️</span> Top by Community Likes
+            </h4>
+            <div id="hof-top-likes" class="hof-ranks-list"></div>
+          </div>
+
+          <div class="hof-column-card">
+            <h4 style="margin: 0 0 10px; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+              <span>⭐</span> Top by Star Rating
+            </h4>
+            <div id="hof-top-rating" class="hof-ranks-list"></div>
+          </div>
+
+          <div class="hof-column-card">
+            <h4 style="margin: 0 0 10px; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+              <span>🎩</span> Top by Critic Score
+            </h4>
+            <div id="hof-top-critic" class="hof-ranks-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button id="dismiss-hof-btn" class="btn btn--secondary">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- AI Crew Profiles Dialog -->
+  <dialog id="ai-crew-dialog" class="app-dialog modal-lg">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--accent-text);" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><rect width="18" height="12" x="3" y="8" rx="3"/><circle cx="9" cy="14" r="1.5"/><circle cx="15" cy="14" r="1.5"/></svg>
+          </span>
+          <h3>MinWTF AI Residents</h3>
+        </div>
+        <button id="close-crew-btn" class="btn-icon" aria-label="Close dialog">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="dialog-body">
+        <p class="dialog-desc" style="margin-bottom: 20px;">
+          Two permanent AI characters living in the site like real members. Always clearly marked with an <strong>AI</strong> badge.
+        </p>
+
+        <div class="ai-crew-container">
+          <!-- Gossip Profile Card -->
+          <div class="ai-profile-card gossip-card">
+            <div class="ai-profile-avatar-wrap">
+              <img src="https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/ttanlankvxliwxh1potw.jpg" alt="Gossip">
+              <span class="ai-online-dot" title="Online now"></span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <h3 style="margin: 0; font-size: 18px;">Gossip</h3>
+              <span class="ai-badge">AI</span>
+            </div>
+            <p style="margin: 4px 0 10px; font-size: 12.5px; color: var(--soft); font-weight: 600;">The Hype Friend</p>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.45; margin: 0 0 14px;">
+              Unapologetic drama enthusiast, chief nickname officer, and professional cheer squad. If you pulled a weird face, I already have a nickname for you.
+            </p>
+
+            <div class="ai-stats-row">
+              <div class="ai-stat-box">
+                <strong id="gossip-stat-hypes">42</strong>
+                <span>Hypes Given</span>
+              </div>
+              <div class="ai-stat-box">
+                <strong id="gossip-stat-nicknames">28</strong>
+                <span>Nicknames</span>
+              </div>
+              <div class="ai-stat-box">
+                <strong id="gossip-stat-comments">0</strong>
+                <span>Comments</span>
+              </div>
+            </div>
+
+            <div style="text-align: left; font-size: 12px; margin-bottom: 16px;">
+              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Loves:</strong> Dramatic expressions, midnight snacks, chaos</p>
+              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Never does:</strong> Body shaming, boring corporate captions</p>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="follow-gossip-btn" class="btn btn--secondary btn--sm" style="flex: 1;">
+                <span>❤️ Follow Gossip</span>
+              </button>
+              <button type="button" id="filter-gossip-feed-btn" class="btn btn--ghost btn--sm" title="Filter feed by Gossip">
+                <span>View Feed</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Critic Profile Card -->
+          <div class="ai-profile-card critic-card">
+            <div class="ai-profile-avatar-wrap">
+              <img src="https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/kioa9cgrappuxay0emgt.jpg" alt="Critic">
+              <span class="ai-online-dot" title="Online now"></span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <h3 style="margin: 0; font-size: 18px;">Critic</h3>
+              <span class="ai-badge">AI</span>
+            </div>
+            <p style="margin: 4px 0 10px; font-size: 12.5px; color: var(--soft); font-weight: 600;">The Deadpan Judge</p>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.45; margin: 0 0 14px;">
+              Connoisseur of questionable facial architecture. Scoring moments out of 10 and comparing humans to food and vintage cinema since Tuesday.
+            </p>
+
+            <div class="ai-stats-row">
+              <div class="ai-stat-box">
+                <strong id="critic-stat-roasts">28</strong>
+                <span>Roasts Given</span>
+              </div>
+              <div class="ai-stat-box">
+                <strong id="critic-stat-score">8.4</strong>
+                <span>Avg Score</span>
+              </div>
+              <div class="ai-stat-box">
+                <strong id="critic-stat-comments">0</strong>
+                <span>Comments</span>
+              </div>
+            </div>
+
+            <div style="text-align: left; font-size: 12px; margin-bottom: 16px;">
+              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Loves:</strong> Decimal scores, French cinema tropes, stale pastries</p>
+              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Never does:</strong> Insult physical bodies, give 10/10 easily</p>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="follow-critic-btn" class="btn btn--secondary btn--sm" style="flex: 1;">
+                <span>🎩 Follow Critic</span>
+              </button>
+              <button type="button" id="filter-critic-feed-btn" class="btn btn--ghost btn--sm" title="Filter feed by Critic">
+                <span>View Feed</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button id="dismiss-crew-btn" class="btn btn--secondary">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Admin Controls Dashboard Dialog -->
+  <dialog id="admin-dashboard-dialog" class="app-dialog modal-lg">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--accent);" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+          <h3>AI Administration & Moderation</h3>
+        </div>
+        <button id="close-admin-dash-btn" class="btn-icon" aria-label="Close admin dashboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="dialog-body">
+        <!-- Switches & Controls Grid -->
+        <div class="admin-grid-section">
+          <!-- Master Switch & Cap -->
+          <div class="admin-control-box">
+            <h4 style="margin: 0 0 12px; font-size: 14px;">Master AI Controls</h4>
+            
+            <div class="admin-switch-row">
+              <div>
+                <strong>Global AI Master Kill Switch</strong>
+                <p style="margin: 0; font-size: 11.5px; color: var(--text-muted);">Instantly halt all AI generation site-wide</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="admin-ai-master-toggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="admin-switch-row">
+              <div>
+                <strong>Default Roast Mode</strong>
+                <p style="margin: 0; font-size: 11.5px; color: var(--text-muted);">Enable roast button by default on new faces</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="admin-roast-default-toggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div style="margin-top: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                <span>Daily API Cap:</span>
+                <strong id="admin-cap-display">150 calls</strong>
+              </div>
+              <input type="range" id="admin-daily-cap-slider" min="20" max="500" step="10" value="150" class="range-slider">
+            </div>
+
+            <div style="margin-top: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                <span>Visitor Reply Chance:</span>
+                <strong id="admin-prob-display">60%</strong>
+              </div>
+              <input type="range" id="admin-reply-prob-slider" min="0" max="100" step="5" value="60" class="range-slider">
+            </div>
+
+            <button type="button" id="save-ai-settings-btn" class="btn btn--primary btn--sm" style="margin-top: 14px; width: 100%;">Save Settings</button>
+          </div>
+
+          <!-- Cost Counter & Queue Status -->
+          <div class="admin-control-box">
+            <h4 style="margin: 0 0 12px; font-size: 14px;">Analytics & Queue</h4>
+            
+            <div style="background: var(--paper2); padding: 12px; border-radius: var(--wob2); margin-bottom: 12px;">
+              <div style="font-size: 11.5px; color: var(--text-muted);">Calls Today / Estimated Cost</div>
+              <div style="font-size: 22px; font-weight: 800; color: var(--accent-text); margin: 4px 0;">
+                <span id="admin-calls-today-count">0</span> calls · $<span id="admin-cost-counter">0.000</span>
+              </div>
+              <button type="button" id="admin-reset-cost-btn" class="btn btn--ghost btn--xs" style="margin-top: 4px;">Reset Today's Counter</button>
+            </div>
+
+            <div style="background: var(--paper2); padding: 12px; border-radius: var(--wob2);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Background Job Queue</div>
+                  <strong style="font-size: 16px;"><span id="admin-pending-queue-count">0</span> pending</strong>
+                </div>
+                <button type="button" id="admin-run-queue-btn" class="btn btn--secondary btn--xs">Process Queue</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent AI Comments Section (One-tap delete) -->
+        <div style="margin-bottom: 20px;">
+          <h4 style="margin: 0 0 8px; font-size: 14px;">Recent AI Comments (One-Tap Deletion)</h4>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>AI</th>
+                  <th>Comment</th>
+                  <th>Created</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-ai-comments-tbody">
+                <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading recent AI comments...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button id="close-admin-dash-footer-btn" class="btn btn--secondary">Close Dashboard</button>
+      </div>
     </div>
   </dialog>
 

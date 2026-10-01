@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isNotForgingAI() {
+      // Disallow client from creating or updating documents with author_type == 'ai' or ai_id
+      return (!('author_type' in request.resource.data) || request.resource.data.author_type != 'ai')
+          && (!('ai_id' in request.resource.data));
+    }
+
+    function isNotForgingFaceAI() {
+      // Disallow client from modifying AI-generated extras or internal AI description
+      return !('ai_extras' in request.resource.data.diff(resource.data).affectedKeys())
+          && !('ai_description' in request.resource.data.diff(resource.data).affectedKeys());
+    }
+
+    // 1. Faces collection
+    match /faces/{faceId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['name', 'image'])
+                    && (!('ai_extras' in request.resource.data))
+                    && (!('ai_description' in request.resource.data));
+      allow update: if isNotForgingFaceAI()
+                    // Allow atomic increments for likes and comments count
+                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'commentsCount']);
+      allow delete: if false; // Deletion handled via Admin auth / server
+    }
+
+    // 2. Face Comments collection
+    match /face_comments/{commentId} {
+      allow read: if true;
+      // Normal visitors cannot create author_type == 'ai' comments
+      allow create: if isNotForgingAI()
+                    && request.resource.data.keys().hasAll(['faceId', 'text', 'sender']);
+      // Allow reactions toggle
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'pinned'])
+                    && isNotForgingAI();
+      allow delete: if false; // Server-managed deletion
+    }
+
+    // 3. Live Chat messages
+    match /chat_messages/{messageId} {
+      allow read: if true;
+      allow create: if isNotForgingAI()
+                    && request.resource.data.keys().hasAll(['text', 'sender']);
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+      allow delete: if false;
+    }
+
+    // 4. AI Users (Gossip and Critic fixed profiles)
+    match /ai_users/{aiId} {
+      allow read: if true;
+      allow write: if false; // Read-only for visitors, managed by server
+    }
+
+    // 5. AI Memory (running jokes, nicknames, summary)
+    match /ai_memory/{aiId} {
+      allow read: if true;
+      allow write: if false; // Server-only
+    }
+
+    // 6. Settings (global switch, daily cap, reply probability)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if false; // Server-only with adminCode verification
+    }
+
+    // 7. Background Queue Jobs
+    match /ai_jobs/{jobId} {
+      allow read: if false;
+      allow write: if false; // Managed exclusively by serverless endpoints
+    }
+
+    // 8. Daily Challenge
+    match /daily_challenge/{challengeId} {
+      allow read: if true;
+      allow write: if false; // Server-only
+    }
+
+    // 9. Daily Mood
+    match /daily_mood/{moodId} {
+      allow read: if true;
+      allow write: if false; // Server-only
+    }
+
+    // 10. Reports
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if request.resource.data.keys().hasAll(['targetType', 'targetId', 'reason']);
+      allow update, delete: if false;
+    }
+  }
+}

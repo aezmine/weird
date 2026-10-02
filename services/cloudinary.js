@@ -83,33 +83,72 @@ export async function uploadMultipleToCloudinary(files, onProgress) {
 }
 
 /**
- * Generates an optimized image URL for cards, thumbnails, or modals.
- * Supports Cloudinary dynamic transformations and Unsplash parameters, with fallback to original URL.
+ * Splits a Cloudinary URL into its base prefix and asset path,
+ * cleanly removing any existing dynamic transformation segments.
+ * @param {string} url
+ * @returns {{ prefix: string, assetPath: string } | null}
+ */
+export function cleanCloudinaryUrl(url) {
+  if (!url || typeof url !== "string") return null;
+  const marker = "/upload/";
+  const idx = url.indexOf(marker);
+  if (idx === -1 || !url.includes("res.cloudinary.com")) return null;
+
+  const prefix = url.slice(0, idx + marker.length);
+  const rest = url.slice(idx + marker.length);
+  const segments = rest.split("/");
+  const assetSegments = [];
+  let foundAsset = false;
+
+  for (const seg of segments) {
+    if (!foundAsset) {
+      // Cloudinary version tag looks like v123456789.
+      // Transformation segments contain parameter tags like c_fill, w_400, f_auto, q_auto:eco.
+      if (/^v\d+$/.test(seg) || !/^[a-z]{1,4}_[a-z0-9_:\.-]+(?:,[a-z]{1,4}_[a-z0-9_:\.-]+)*$/i.test(seg)) {
+        foundAsset = true;
+        assetSegments.push(seg);
+      }
+    } else {
+      assetSegments.push(seg);
+    }
+  }
+
+  return {
+    prefix,
+    assetPath: assetSegments.length > 0 ? assetSegments.join("/") : rest
+  };
+}
+
+/**
+ * Generates an ultra-lightweight optimized image URL for initial previews, cards, and thumbnails.
+ * Shrinks heavy multi-megabyte images to fast, compressed (~20KB-40KB) previews to eliminate page lag.
  * @param {string} url - The original image URL
- * @param {Object} [options] - Transformation options { width, height, fit, quality }
- * @returns {string} Optimized image URL
+ * @param {Object} [options] - Transformation options { width, height, fit, quality, gravity }
+ * @returns {string} Optimized preview image URL
  */
 export function getOptimizedImageUrl(url, options = {}) {
   if (!url || typeof url !== "string") return "";
 
-  const { width = 600, height = 450, fit = "fill", quality = "auto" } = options;
+  const {
+    width = 440,
+    height = 330,
+    fit = "fill",
+    quality = "auto:eco",
+    gravity = "auto"
+  } = options;
 
   // Cloudinary URL transformation
-  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
-    const parts = url.split("/upload/");
-    if (parts.length === 2) {
-      if (/c_[a-z]+|w_[0-9]+|f_[a-z]+/.test(parts[1])) {
-        return url;
-      }
-      const transformParams = [
-        `c_${fit}`,
-        `w_${width}`,
-        ...(height ? [`h_${height}`] : []),
-        `f_auto`,
-        `q_${quality}`
-      ].join(",");
-      return `${parts[0]}/upload/${transformParams}/${parts[1]}`;
-    }
+  const parsed = cleanCloudinaryUrl(url);
+  if (parsed) {
+    const transformParts = [
+      "f_auto",
+      `q_${quality}`,
+      `c_${fit}`,
+      ...(fit === "fill" || fit === "crop" || fit === "thumb" ? [`g_${gravity}`] : []),
+      `w_${width}`,
+      ...(height ? [`h_${height}`] : [])
+    ];
+    return `${parsed.prefix}${transformParts.join(",")}/${parsed.assetPath}`;
   }
 
   // Unsplash URL optimization
@@ -117,9 +156,10 @@ export function getOptimizedImageUrl(url, options = {}) {
     try {
       const parsedUrl = new URL(url);
       parsedUrl.searchParams.set("w", String(width));
+      if (height) parsedUrl.searchParams.set("h", String(height));
       parsedUrl.searchParams.set("auto", "format");
       parsedUrl.searchParams.set("fit", "crop");
-      parsedUrl.searchParams.set("q", "80");
+      parsedUrl.searchParams.set("q", "70");
       return parsedUrl.toString();
     } catch {
       return url;
@@ -130,34 +170,21 @@ export function getOptimizedImageUrl(url, options = {}) {
 }
 
 /**
- * Returns the full original image URL for the Inspect modal,
- * preserving natural aspect ratio without any cropping transformations.
+ * Returns the unconstrained, original real-size image URL for the Inspect modal or full-screen view.
+ * Strips all cropping, height, and width constraints so the real full-resolution picture is delivered.
  * @param {string} url - The original image URL
- * @returns {string} Full image URL
+ * @returns {string} Full real-size image URL
  */
 export function getFullImageUrl(url) {
   if (!url || typeof url !== "string") return "";
 
-  // Cloudinary: deliver with automatic format/quality, NO cropping
-  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
-    const parts = url.split("/upload/");
-    if (parts.length === 2) {
-      if (/c_[a-z]+|w_[0-9]+|h_[0-9]+/.test(parts[1])) {
-        const cleanPath = parts[1]
-          .replace(/c_[^/,]+,*/g, "")
-          .replace(/w_[0-9]+,*/g, "")
-          .replace(/h_[0-9]+,*/g, "")
-          .replace(/,+(?=\/)/g, "")
-          .replace(/^\/+/, "");
-        return `${parts[0]}/upload/f_auto,q_auto/${cleanPath}`;
-      }
-      if (!/f_auto/.test(parts[1])) {
-        return `${parts[0]}/upload/f_auto,q_auto/${parts[1]}`;
-      }
-    }
+  // Cloudinary: deliver original real size with smart browser format & high quality, NO cropping or resizing
+  const parsed = cleanCloudinaryUrl(url);
+  if (parsed) {
+    return `${parsed.prefix}f_auto,q_auto/${parsed.assetPath}`;
   }
 
-  // Unsplash: remove crop & fixed dimensions to preserve natural aspect ratio
+  // Unsplash: remove crop & fixed dimensions to preserve natural aspect ratio and full resolution
   if (url.includes("images.unsplash.com")) {
     try {
       const parsedUrl = new URL(url);
@@ -166,7 +193,7 @@ export function getFullImageUrl(url) {
       parsedUrl.searchParams.delete("w");
       parsedUrl.searchParams.delete("h");
       parsedUrl.searchParams.set("auto", "format");
-      parsedUrl.searchParams.set("q", "85");
+      parsedUrl.searchParams.set("q", "90");
       return parsedUrl.toString();
     } catch {
       return url;
@@ -175,3 +202,4 @@ export function getFullImageUrl(url) {
 
   return url;
 }
+

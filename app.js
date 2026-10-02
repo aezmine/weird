@@ -358,8 +358,8 @@ function renderCards(facesToRender) {
     const card = document.createElement("article");
     card.className = `face-card ${face.hidden ? 'face-card-hidden' : ''}`;
 
-    // Deliver optimized thumbnail size for cards
-    const thumbUrl = getOptimizedImageUrl(face.image, { width: 560, height: 420, fit: "fill" });
+    // Deliver ultra-lightweight optimized thumbnail for cards (~20KB-40KB instead of multi-megabytes)
+    const thumbUrl = getOptimizedImageUrl(face.image, { width: 440, height: 330, fit: "fill", quality: "auto:eco" });
 
     const isLiked = isFaceLiked(face.id);
     const likesCount = typeof face.likesCount === "number" ? face.likesCount : 0;
@@ -400,7 +400,7 @@ function renderCards(facesToRender) {
 
     card.innerHTML = `
       <div class="card-img-wrapper" title="Click to view details">
-        <img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(face.name)}" loading="lazy" width="280" height="210">
+        <img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(face.name)}" loading="lazy" decoding="async" width="280" height="210">
         <div class="card-badges">
           <span class="badge badge-category" title="${escapeHtml(face.expression || 'Funny')}">${escapeHtml(face.expression || 'Funny')}</span>
           <span class="badge badge-score" title="User Rating">${icon('star', { size: 11 })} ${escapeHtml(face.funnyScore || '0')}</span>
@@ -747,7 +747,9 @@ function renderFaceCommentsList(face, container) {
     const isAi = c.author_type === "ai" || c.ai_id || c.sender === "Gossip" || c.sender === "Critic";
     const isCritic = c.ai_id === "critic" || c.sender === "Critic";
     const avatarUrl = isAi
-      ? (isCritic ? "https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/kioa9cgrappuxay0emgt.jpg" : "https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/ttanlankvxliwxh1potw.jpg")
+      ? (isCritic
+          ? getOptimizedImageUrl("https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/kioa9cgrappuxay0emgt.jpg", { width: 48, height: 48, fit: "fill", quality: "auto:eco" })
+          : getOptimizedImageUrl("https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/ttanlankvxliwxh1potw.jpg", { width: 48, height: 48, fit: "fill", quality: "auto:eco" }))
       : null;
 
     const avatarHtml = isAi
@@ -833,7 +835,7 @@ function openDetails(face, shouldFocusComments = false) {
   dialogBody.innerHTML = `
     <div class="inspect-container">
       <div class="inspect-img-stage" id="inspect-img-stage">
-        <div class="inspect-loading" id="inspect-loading">
+        <div class="inspect-loading" id="inspect-loading" style="display: none;">
           <span class="spinner"></span>
           <span style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Loading full image...</span>
         </div>
@@ -842,8 +844,11 @@ function openDetails(face, shouldFocusComments = false) {
           class="inspect-full-img"
           alt="${escapeHtml(face.name)}"
           title="Click to view full image in a new tab"
-          style="display: none;"
         >
+        <div id="inspect-full-status" class="inspect-full-status">
+          <span class="inspect-status-dot"></span>
+          <span id="inspect-status-text">Loading full size...</span>
+        </div>
         <a
           id="inspect-open-full-btn"
           href="${escapeHtml(fullImageUrl)}"
@@ -858,7 +863,7 @@ function openDetails(face, shouldFocusComments = false) {
         </a>
         <div class="inspect-img-error" id="inspect-error" style="display: none;">
           <span style="display: inline-flex;" aria-hidden="true">${icon('alertTriangle', { size: 24 })}</span>
-          <p style="margin: 4px 0 10px; font-size: 13px; color: var(--text-muted);">Unable to load image</p>
+          <p style="margin: 4px 0 10px; font-size: 13px; color: var(--text-muted);">Unable to load full image</p>
           <button type="button" class="btn btn--secondary btn--sm" id="inspect-retry-btn">Retry</button>
         </div>
       </div>
@@ -1210,28 +1215,52 @@ function openDetails(face, shouldFocusComments = false) {
   const loadingEl = dialogBody.querySelector("#inspect-loading");
   const errorEl = dialogBody.querySelector("#inspect-error");
   const retryBtn = dialogBody.querySelector("#inspect-retry-btn");
+  const statusEl = dialogBody.querySelector("#inspect-full-status");
+  const statusText = dialogBody.querySelector("#inspect-status-text");
 
-  function loadImage(url) {
-    loadingEl.style.display = "flex";
-    errorEl.style.display = "none";
-    imgEl.style.display = "none";
-    if (openFullBtn) openFullBtn.style.display = "none";
+  // Step 1: Immediately render the lightweight preview so the face shows instantly with 0 wait time
+  const previewThumbUrl = getOptimizedImageUrl(face.image, { width: 560, height: 420, fit: "fill", quality: "auto:eco" });
+  if (previewThumbUrl) {
+    imgEl.src = previewThumbUrl;
+    imgEl.style.display = "block";
+  }
 
-    imgEl.onload = () => {
-      loadingEl.style.display = "none";
-      errorEl.style.display = "none";
+  // Step 2: Fetch and upgrade to the uncropped, real full-size original picture in the background
+  function loadRealFullImage(url) {
+    if (loadingEl) loadingEl.style.display = "none";
+    if (errorEl) errorEl.style.display = "none";
+    if (statusEl) {
+      statusEl.style.display = "inline-flex";
+      statusEl.classList.remove("is-ready");
+      if (statusText) statusText.textContent = "Loading full size...";
+    }
+
+    const preloader = new Image();
+    preloader.onload = () => {
+      imgEl.src = url;
       imgEl.style.display = "block";
+      if (openFullBtn && fullImageUrl) openFullBtn.style.display = "inline-flex";
+      if (statusEl) {
+        statusEl.classList.add("is-ready");
+        if (statusText) statusText.textContent = "Full Size HD";
+        setTimeout(() => {
+          if (statusEl) statusEl.style.opacity = "0.75";
+        }, 2200);
+      }
+    };
+
+    preloader.onerror = () => {
+      // If full image fails, keep preview image visible
+      if (statusEl && statusText) {
+        statusText.textContent = "Preview Mode";
+      }
+      if (!imgEl.src && errorEl) {
+        errorEl.style.display = "flex";
+      }
       if (openFullBtn && fullImageUrl) openFullBtn.style.display = "inline-flex";
     };
 
-    imgEl.onerror = () => {
-      loadingEl.style.display = "none";
-      errorEl.style.display = "flex";
-      imgEl.style.display = "none";
-      if (openFullBtn) openFullBtn.style.display = "none";
-    };
-
-    imgEl.src = url;
+    preloader.src = url;
   }
 
   // Click on modal image opens full resolution in new tab
@@ -1246,11 +1275,11 @@ function openDetails(face, shouldFocusComments = false) {
       const retryUrl = fullImageUrl.includes("?")
         ? `${fullImageUrl}&_r=${Date.now()}`
         : `${fullImageUrl}?_r=${Date.now()}`;
-      loadImage(retryUrl);
+      loadRealFullImage(retryUrl);
     });
   }
 
-  loadImage(fullImageUrl);
+  loadRealFullImage(fullImageUrl);
 
   // Configure Inspect modal actions based on admin role
   if (detailEditBtn) detailEditBtn.style.display = isAdmin ? "inline-flex" : "none";
@@ -1305,9 +1334,9 @@ function openFormModal(mode, face = null) {
     faceBackstoryInput.value = face.backstory || "";
     imageUrlInput.value = "";
 
-    // Show existing image in preview
+    // Show existing image in preview (optimized thumbnail)
     if (face.image) {
-      imagePreview.src = face.image;
+      imagePreview.src = getOptimizedImageUrl(face.image, { width: 360, height: 270, fit: "fill", quality: "auto:eco" });
       dropzonePrompt.style.display = "none";
       dropzonePreviewContainer.style.display = "flex";
       if (imageFilename) imageFilename.textContent = "Current image retained unless changed";

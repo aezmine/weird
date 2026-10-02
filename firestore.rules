@@ -8,9 +8,12 @@ service cloud.firestore {
     }
 
     function isNotForgingAI() {
-      // Disallow client from creating or updating documents with author_type == 'ai' or ai_id
+      // Disallow client from creating or updating documents with AI credentials or impersonating AI characters
       return (!('author_type' in request.resource.data) || request.resource.data.author_type != 'ai')
-          && (!('ai_id' in request.resource.data));
+          && (!('type' in request.resource.data) || request.resource.data.type != 'ai')
+          && (!('ai_id' in request.resource.data))
+          && (!('characterId' in request.resource.data))
+          && (!('sender' in request.resource.data) || !(request.resource.data.sender in ['PavinBot', 'Divka', 'Ijat', 'Bella', 'Azmin', 'Gossip', 'Critic']));
     }
 
     function isNotForgingFaceAI() {
@@ -68,6 +71,18 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow write: if false; // Server-only with adminCode verification
+    }
+
+    // 6b. Persistent AI State (main document: currentTopic, mood, jokes, locks)
+    match /aiState/{stateId} {
+      allow read: if true;
+      allow write: if false; // Server-only
+    }
+
+    // 6c. Persistent AI Chat Messages
+    match /aiChatMessages/{msgId} {
+      allow read: if true;
+      allow write: if false; // Server-only
     }
 
     // 7. Background Queue Jobs

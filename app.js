@@ -26,9 +26,11 @@ import {
   togglePinComment,
   getStoredNotifications,
   addNotification,
-  clearStoredNotifications
+  clearStoredNotifications,
+  triggerAiChatTick
 } from "./services/chat-service.js";
 import { icon, renderAvatarSvg, AVATAR_OPTIONS } from "./services/icons.js";
+import { AI_CHARACTERS, getCharacterInfo } from "./services/ai-characters-config.js";
 
 // Admin Auth State & Config
 const ADMIN_ACCESS_CODE = "minmin321";
@@ -839,8 +841,21 @@ function openDetails(face, shouldFocusComments = false) {
           id="inspect-full-img"
           class="inspect-full-img"
           alt="${escapeHtml(face.name)}"
+          title="Click to view full image in a new tab"
           style="display: none;"
         >
+        <a
+          id="inspect-open-full-btn"
+          href="${escapeHtml(fullImageUrl)}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inspect-open-full-btn"
+          title="Open original image in new tab"
+          style="display: none;"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Full Image</span>
+        </a>
         <div class="inspect-img-error" id="inspect-error" style="display: none;">
           <span style="display: inline-flex;" aria-hidden="true">${icon('alertTriangle', { size: 24 })}</span>
           <p style="margin: 4px 0 10px; font-size: 13px; color: var(--text-muted);">Unable to load image</p>
@@ -1191,6 +1206,7 @@ function openDetails(face, shouldFocusComments = false) {
   });
 
   const imgEl = dialogBody.querySelector("#inspect-full-img");
+  const openFullBtn = dialogBody.querySelector("#inspect-open-full-btn");
   const loadingEl = dialogBody.querySelector("#inspect-loading");
   const errorEl = dialogBody.querySelector("#inspect-error");
   const retryBtn = dialogBody.querySelector("#inspect-retry-btn");
@@ -1199,21 +1215,31 @@ function openDetails(face, shouldFocusComments = false) {
     loadingEl.style.display = "flex";
     errorEl.style.display = "none";
     imgEl.style.display = "none";
+    if (openFullBtn) openFullBtn.style.display = "none";
 
     imgEl.onload = () => {
       loadingEl.style.display = "none";
       errorEl.style.display = "none";
       imgEl.style.display = "block";
+      if (openFullBtn && fullImageUrl) openFullBtn.style.display = "inline-flex";
     };
 
     imgEl.onerror = () => {
       loadingEl.style.display = "none";
       errorEl.style.display = "flex";
       imgEl.style.display = "none";
+      if (openFullBtn) openFullBtn.style.display = "none";
     };
 
     imgEl.src = url;
   }
+
+  // Click on modal image opens full resolution in new tab
+  imgEl.addEventListener("click", () => {
+    if (fullImageUrl) {
+      window.open(fullImageUrl, "_blank");
+    }
+  });
 
   if (retryBtn) {
     retryBtn.addEventListener("click", () => {
@@ -1743,21 +1769,32 @@ function renderMessageCardHtml(msg) {
   const isLiked = isMessageLiked(msg.id);
   const likesCount = typeof msg.likes === "number" ? msg.likes : 0;
   const timeStr = formatTimeAgo(msg.createdAt);
+  const messageBody = msg.message || msg.text || "";
+
+  // Check if this message was sent by an AI character
+  const isAi = msg.type === "ai" || msg.author_type === "ai" || Boolean(msg.characterId);
+  const charInfo = isAi ? getCharacterInfo(msg.characterId || msg.sender) : null;
+  const senderDisplayName = charInfo ? charInfo.name : (msg.sender || "Anonymous");
+  const avatarKey = charInfo ? charInfo.avatar : (msg.avatar || "alien");
 
   const faceTag = msg.faceName
     ? `<button type="button" class="chat-msg-tag btn-inspect-tagged-face" data-face-id="${escapeHtml(msg.faceId || '')}" title="Inspect ${escapeHtml(msg.faceName)}">${icon("tag", { size: 11 })} ${escapeHtml(msg.faceName)}</button>`
     : "";
 
+  const aiBadge = isAi
+    ? `<span class="ai-chat-badge" title="${charInfo ? charInfo.role : 'Resident AI'}">🤖 AI</span>`
+    : "";
+
   return `
-    <div class="chat-msg ${isMyMsg ? 'my-msg' : ''}" data-msg-id="${escapeHtml(msg.id)}">
-      <div class="chat-avatar" aria-hidden="true">${renderAvatarSvg(msg.avatar, 18)}</div>
+    <div class="chat-msg ${isMyMsg ? 'my-msg' : ''} ${isAi ? 'ai-msg' : ''} ${charInfo ? `ai-msg-${charInfo.id}` : ''}" data-msg-id="${escapeHtml(msg.id)}">
+      <div class="chat-avatar ${isAi ? 'chat-avatar-ai' : ''}" aria-hidden="true">${renderAvatarSvg(avatarKey, 18)}</div>
       <div class="chat-msg-body">
         <div class="chat-msg-header">
-          <span class="chat-msg-author">${escapeHtml(msg.sender || "Anonymous")}${isMyMsg ? ' (You)' : ''}</span>
+          <span class="chat-msg-author ${isAi ? 'chat-msg-author-ai' : ''}">${escapeHtml(senderDisplayName)}${aiBadge}${isMyMsg ? ' (You)' : ''}</span>
           <span class="chat-msg-time">${timeStr}</span>
         </div>
         ${faceTag}
-        <div class="chat-msg-text">${formatRichText(msg.text)}</div>
+        <div class="chat-msg-text">${formatRichText(messageBody)}</div>
         <div class="chat-msg-footer">
           <button type="button" class="chat-like-btn ${isLiked ? 'liked' : ''}" data-msg-id="${escapeHtml(msg.id)}" title="${isLiked ? 'Unlike' : 'Like'} this comment">
             <span class="chat-like-heart" aria-hidden="true">${isLiked ? icon('heartFilled', { size: 12 }) : icon('heartOutline', { size: 12 })}</span>
@@ -1781,6 +1818,19 @@ function renderChatMessages(messages) {
   if (mobileChatBadge) {
     mobileChatBadge.textContent = messages.length;
     mobileChatBadge.style.display = messages.length > 0 ? "inline-block" : "none";
+  }
+
+  // Update AI Status bar text based on conversation state
+  const aiStatusText = document.getElementById("ai-chat-status-text");
+  if (aiStatusText) {
+    const aiMsgs = messages.filter(m => m.type === "ai" || m.author_type === "ai" || m.characterId);
+    if (aiMsgs.length > 0) {
+      const latestAi = aiMsgs[aiMsgs.length - 1];
+      const speakerName = latestAi.characterName || latestAi.sender;
+      aiStatusText.textContent = `${speakerName} is arguing in chat`;
+    } else {
+      aiStatusText.textContent = `AI Crew is online & chatting`;
+    }
   }
 
   if (messages.length === 0) {
@@ -2281,18 +2331,55 @@ function updateAiCrewFollowUI() {
 
 function openAICrew() {
   if (!aiCrewDialog) return;
-  updateAiCrewFollowUI();
+  const cardsContainer = document.getElementById("ai-crew-cards-container");
+  if (cardsContainer) {
+    cardsContainer.innerHTML = Object.values(AI_CHARACTERS).map(char => {
+      return `
+        <div class="ai-profile-card ai-card-${escapeHtml(char.id)}">
+          <div class="ai-profile-avatar-wrap">
+            <div class="ai-profile-vector-avatar" style="color: var(--ink);">
+              ${renderAvatarSvg(char.avatar, 38)}
+            </div>
+            <span class="ai-online-dot" title="Online in Live Chat"></span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <h3 style="margin: 0; font-size: 18px;">${escapeHtml(char.name)}</h3>
+            <span class="ai-badge">🤖 AI</span>
+          </div>
+          <p style="margin: 4px 0 6px; font-size: 13px; color: var(--soft); font-weight: 700;">${escapeHtml(char.role)}</p>
+          <div>
+            <span class="ai-provider-pill" style="font-size: 11px; padding: 2px 8px; border: 1.5px solid var(--ink); border-radius: var(--wob2); background: var(--paper); font-weight: 600; text-transform: uppercase;">Powered by ${escapeHtml(char.provider)}</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.45; margin: 10px 0 14px;">
+            ${escapeHtml(char.desc)}
+          </p>
 
-  // Dynamic comment counters for Gossip and Critic
-  let gossipComments = 0;
-  let criticComments = 0;
-  allFaces.forEach((f) => {
-    if (f.has_gossip_comment) gossipComments++;
-    if (f.has_critic_comment) criticComments++;
-  });
+          <div style="text-align: left; font-size: 12px; margin-bottom: 16px; background: var(--paper); padding: 10px; border: 1.5px solid var(--ink); border-radius: var(--wob2); flex: 1;">
+            <p style="margin: 3px 0; color: var(--ink);"><strong>Loves:</strong> <span style="color: var(--soft);">${escapeHtml(char.loves)}</span></p>
+            <p style="margin: 3px 0; color: var(--ink);"><strong>Never does:</strong> <span style="color: var(--soft);">${escapeHtml(char.neverDoes)}</span></p>
+          </div>
 
-  if (gossipStatComments) gossipStatComments.textContent = gossipComments || "14";
-  if (criticStatComments) criticStatComments.textContent = criticComments || "12";
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn--secondary btn--sm btn-say-hi-crew" data-char-name="${escapeHtml(char.name)}" style="flex: 1;">
+              <span>💬 Mention @${escapeHtml(char.name)}</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Wire up mention buttons
+    cardsContainer.querySelectorAll(".btn-say-hi-crew").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const charName = btn.dataset.charName;
+        if (charName && chatInput) {
+          closeAICrew();
+          chatInput.value = `@${charName} `;
+          chatInput.focus();
+        }
+      });
+    });
+  }
 
   aiCrewDialog.showModal();
 }
@@ -3016,6 +3103,10 @@ function initApp() {
       showToast(`Firestore error: ${err.message}`, "error");
     }
   );
+
+  // Opportunistic background heartbeat for AI group chat (runs every 60s while browser is active)
+  setTimeout(() => triggerAiChatTick(), 4000);
+  setInterval(() => triggerAiChatTick(), 60000);
 }
 
 // Start

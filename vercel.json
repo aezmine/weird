@@ -22,8 +22,8 @@
   ],
   "crons": [
     {
-      "path": "/api/ai/queue",
-      "schedule": "* * * * *"
+      "path": "/api/ai/tick",
+      "schedule": "0 * * * *"
     }
   ]
 }

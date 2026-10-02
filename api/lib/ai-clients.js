@@ -347,8 +347,95 @@ function getProceduralFallback(character, task, title, nickname, visitor) {
   }
 }
 
+/**
+ * Unified Group Chat AI Response Generator with Provider Abstraction & Fallback.
+ * Generates responses for PavinBot, Divka, Ijat, Bella, Azmin.
+ * Uses Groq or Gemini based on character config, with automatic bidirectional fallback.
+ */
+async function generateGroupChatResponse({
+  character,
+  systemPrompt,
+  userPrompt,
+  forcedProvider = null
+}) {
+  const env = getEnvKeys();
+  const primaryProvider = forcedProvider || character.provider || "groq";
+  const secondaryProvider = primaryProvider === "groq" ? "gemini" : "groq";
+
+  const providersToTry = [primaryProvider, secondaryProvider];
+  let rawOutput = "";
+  let usedProvider = primaryProvider;
+  let lastError = null;
+
+  for (const provider of providersToTry) {
+    try {
+      if (provider === "groq") {
+        if (!env.groqKey) {
+          throw new Error("Missing GROQ_API_KEY");
+        }
+        rawOutput = await callGroq({
+          systemPrompt,
+          userPrompt,
+          temperature: 0.82,
+          maxTokens: 60,
+          apiKey: env.groqKey
+        });
+      } else if (provider === "gemini") {
+        if (!env.geminiKey) {
+          throw new Error("Missing GEMINI_API_KEY");
+        }
+        rawOutput = await callGemini({
+          prompt: `${systemPrompt}\n\n${userPrompt}`,
+          temperature: 0.82,
+          maxTokens: 60,
+          apiKey: env.geminiKey
+        });
+      }
+
+      if (rawOutput && rawOutput.trim().length > 0) {
+        usedProvider = provider;
+        break;
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn(`[AI Chat] ${character.name} (${provider}) failed: ${err.message}. Trying fallback...`);
+    }
+  }
+
+  if (!rawOutput || !rawOutput.trim()) {
+    console.error(`[AI Chat] All providers failed for ${character.name}:`, lastError ? lastError.message : "Empty output");
+    return {
+      success: false,
+      error: lastError ? lastError.message : "Empty output from all AI providers"
+    };
+  }
+
+  // Clean up formatting
+  let cleanText = rawOutput.trim();
+  if ((cleanText.startsWith('"') && cleanText.endsWith('"')) || (cleanText.startsWith("'") && cleanText.endsWith("'"))) {
+    cleanText = cleanText.slice(1, -1).trim();
+  }
+  const namePrefixRegex = new RegExp(`^${character.name}\\s*:\\s*`, "i");
+  cleanText = cleanText.replace(namePrefixRegex, "").trim();
+
+  // Enforce word limit (max 25 words)
+  const words = cleanText.split(/\s+/);
+  if (words.length > 25) {
+    cleanText = words.slice(0, 25).join(" ") + "...";
+  }
+
+  return {
+    success: true,
+    text: cleanText,
+    provider: usedProvider,
+    characterId: character.id,
+    characterName: character.name
+  };
+}
+
 module.exports = {
   generateAIResponse,
+  generateGroupChatResponse,
   generateVisionDescription,
   callGemini,
   callGroq,
@@ -356,3 +443,4 @@ module.exports = {
   getCloudinaryVisionUrl,
   SYSTEM_PROMPTS
 };
+

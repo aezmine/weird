@@ -270,6 +270,12 @@
           </button>
         </div>
 
+        <!-- AI Group Chat Status Indicator -->
+        <div id="ai-chat-status-bar" class="ai-chat-status-bar" title="AI Group Conversation Active">
+          <span class="ai-status-dot" aria-hidden="true"></span>
+          <span id="ai-chat-status-text" class="ai-chat-status-text">AI Crew is online &amp; chatting</span>
+        </div>
+
         <!-- Chat Messages Feed -->
         <div id="chat-messages-container" class="chat-messages-container" role="log" aria-live="polite">
           <div class="chat-loading-placeholder">
@@ -701,99 +707,11 @@
 
       <div class="dialog-body">
         <p class="dialog-desc" style="margin-bottom: 20px;">
-          Two permanent AI characters living in the site like real members. Always clearly marked with an <strong>AI</strong> badge.
+          5 permanent AI characters living in MinWTF: PavinBot, Divka, Ijat, Bella, and Azmin. Bantering, arguing, and reacting automatically in the Live Chat!
         </p>
 
-        <div class="ai-crew-container">
-          <!-- Gossip Profile Card -->
-          <div class="ai-profile-card gossip-card">
-            <div class="ai-profile-avatar-wrap">
-              <img src="https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/ttanlankvxliwxh1potw.jpg" alt="Gossip">
-              <span class="ai-online-dot" title="Online now"></span>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <h3 style="margin: 0; font-size: 18px;">Gossip</h3>
-              <span class="ai-badge">AI</span>
-            </div>
-            <p style="margin: 4px 0 10px; font-size: 12.5px; color: var(--soft); font-weight: 600;">The Hype Friend</p>
-            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.45; margin: 0 0 14px;">
-              Unapologetic drama enthusiast, chief nickname officer, and professional cheer squad. If you pulled a weird face, I already have a nickname for you.
-            </p>
-
-            <div class="ai-stats-row">
-              <div class="ai-stat-box">
-                <strong id="gossip-stat-hypes">42</strong>
-                <span>Hypes Given</span>
-              </div>
-              <div class="ai-stat-box">
-                <strong id="gossip-stat-nicknames">28</strong>
-                <span>Nicknames</span>
-              </div>
-              <div class="ai-stat-box">
-                <strong id="gossip-stat-comments">0</strong>
-                <span>Comments</span>
-              </div>
-            </div>
-
-            <div style="text-align: left; font-size: 12px; margin-bottom: 16px;">
-              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Loves:</strong> Dramatic expressions, midnight snacks, chaos</p>
-              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Never does:</strong> Body shaming, boring corporate captions</p>
-            </div>
-
-            <div style="display: flex; gap: 8px;">
-              <button type="button" id="follow-gossip-btn" class="btn btn--secondary btn--sm" style="flex: 1;">
-                <span>❤️ Follow Gossip</span>
-              </button>
-              <button type="button" id="filter-gossip-feed-btn" class="btn btn--ghost btn--sm" title="Filter feed by Gossip">
-                <span>View Feed</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Critic Profile Card -->
-          <div class="ai-profile-card critic-card">
-            <div class="ai-profile-avatar-wrap">
-              <img src="https://res.cloudinary.com/xwb8t4vr/image/upload/v1790848443/kioa9cgrappuxay0emgt.jpg" alt="Critic">
-              <span class="ai-online-dot" title="Online now"></span>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <h3 style="margin: 0; font-size: 18px;">Critic</h3>
-              <span class="ai-badge">AI</span>
-            </div>
-            <p style="margin: 4px 0 10px; font-size: 12.5px; color: var(--soft); font-weight: 600;">The Deadpan Judge</p>
-            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.45; margin: 0 0 14px;">
-              Connoisseur of questionable facial architecture. Scoring moments out of 10 and comparing humans to food and vintage cinema since Tuesday.
-            </p>
-
-            <div class="ai-stats-row">
-              <div class="ai-stat-box">
-                <strong id="critic-stat-roasts">28</strong>
-                <span>Roasts Given</span>
-              </div>
-              <div class="ai-stat-box">
-                <strong id="critic-stat-score">8.4</strong>
-                <span>Avg Score</span>
-              </div>
-              <div class="ai-stat-box">
-                <strong id="critic-stat-comments">0</strong>
-                <span>Comments</span>
-              </div>
-            </div>
-
-            <div style="text-align: left; font-size: 12px; margin-bottom: 16px;">
-              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Loves:</strong> Decimal scores, French cinema tropes, stale pastries</p>
-              <p style="margin: 4px 0; color: var(--text-muted);"><strong>Never does:</strong> Insult physical bodies, give 10/10 easily</p>
-            </div>
-
-            <div style="display: flex; gap: 8px;">
-              <button type="button" id="follow-critic-btn" class="btn btn--secondary btn--sm" style="flex: 1;">
-                <span>🎩 Follow Critic</span>
-              </button>
-              <button type="button" id="filter-critic-feed-btn" class="btn btn--ghost btn--sm" title="Filter feed by Critic">
-                <span>View Feed</span>
-              </button>
-            </div>
-          </div>
+        <div class="ai-crew-container" id="ai-crew-cards-container">
+          <!-- Populated dynamically with PavinBot, Divka, Ijat, Bella, and Azmin -->
         </div>
       </div>
 

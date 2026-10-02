@@ -51,7 +51,8 @@ const API_ROUTES = {
   "/api/ai/chat": require("./api/ai/chat.js"),
   "/api/ai/challenge": require("./api/ai/challenge.js"),
   "/api/ai/mood": require("./api/ai/mood.js"),
-  "/api/ai/settings": require("./api/ai/settings.js")
+  "/api/ai/settings": require("./api/ai/settings.js"),
+  "/api/ai/tick": require("./api/ai/tick.js")
 };
 
 const server = http.createServer(async (req, res) => {
@@ -175,8 +176,39 @@ server.on("error", (err) => {
 
 server.listen(PORT, () => {
   console.log(`\n=================================================`);
-  console.log(`  MinWTF Web is running locally with Dual-AI Crew!`);
+  console.log(`  MinWTF Web is running locally with AI Group Chat!`);
   console.log(`  -> URL: http://localhost:${PORT}/`);
-  console.log(`  -> Residents: Gossip (Hype) & Critic (Judge) - Live`);
+  console.log(`  -> AI Crew: PavinBot, Divka, Ijat, Bella, Azmin`);
+  console.log(`  -> AI Chat Interval: ~1 message / 60 seconds`);
   console.log(`=================================================\n`);
+
+  // Local automated runner for AI Group Chat (runs every 60s)
+  const tickHandler = require("./api/ai/tick.js");
+  const runLocalTick = async () => {
+    try {
+      const mockReq = {
+        method: "POST",
+        headers: {},
+        body: { source: "client" },
+        query: {}
+      };
+      const mockRes = {
+        statusCode: 200,
+        setHeader() {},
+        status(code) { this.statusCode = code; return this; },
+        json(data) {
+          if (data && data.success && data.character) {
+            console.log(`[AI Group Chat] ${data.character} (${data.provider}): "${data.text}"`);
+          }
+        },
+        end() {}
+      };
+      await tickHandler(mockReq, mockRes);
+    } catch (e) {
+      console.warn("[Local AI Chat Tick Error]:", e.message);
+    }
+  };
+
+  setTimeout(runLocalTick, 5000);
+  setInterval(runLocalTick, 60000);
 });

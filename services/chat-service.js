@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { isImpersonatingAI } from "./ai-characters-config.js";
 
 const CHAT_COLLECTION = "chat_messages";
 const COMMENTS_COLLECTION = "face_comments";
@@ -66,8 +67,15 @@ export function getCurrentChatUser() {
  * Save updated user identity.
  */
 export function saveCurrentChatUser(name, avatar) {
+  let cleanName = (name || "Anonymous").trim().slice(0, 25);
+  // Anti-impersonation check: prevent taking AI character or admin names
+  if (isImpersonatingAI(cleanName)) {
+    const randomNum = Math.floor(100 + Math.random() * 900);
+    cleanName = `Visitor${randomNum}`;
+  }
+
   const user = {
-    name: (name || "Anonymous").trim().slice(0, 25),
+    name: cleanName,
     avatar: avatar || "alien"
   };
   try {
@@ -209,10 +217,20 @@ export async function sendChatMessage({ text, faceId = null, faceName = null }) 
   const trimmedText = (text || "").trim();
   if (!trimmedText) return null;
 
+  // Double check user name is not forging AI bot names
+  let senderName = user.name;
+  if (isImpersonatingAI(senderName)) {
+    senderName = `Visitor${Math.floor(100 + Math.random() * 900)}`;
+    saveCurrentChatUser(senderName, user.avatar);
+  }
+
   const docRef = await addDoc(collection(db, CHAT_COLLECTION), {
     text: trimmedText,
-    sender: user.name,
+    message: trimmedText,
+    sender: senderName,
     avatar: user.avatar,
+    type: "human",
+    author_type: "human",
     faceId: faceId || null,
     faceName: faceName || null,
     likes: 0,
@@ -220,25 +238,32 @@ export async function sendChatMessage({ text, faceId = null, faceName = null }) 
   });
   const msgId = docRef.id;
 
-  // Check if message mentions @Gossip or @Critic
-  const lower = trimmedText.toLowerCase();
-  if (lower.includes("@gossip") || lower.includes("@critic")) {
-    try {
-      fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "mention",
-          text: trimmedText,
-          sender: user.name,
-          faceId,
-          faceName
-        })
-      }).catch(err => console.warn("Live chat AI mention error:", err));
-    } catch {}
-  }
+  // Opportunistic trigger for AI chat: when human speaks, trigger a tick turn with small delay
+  // so AI characters have a chance to notice and banter with the human
+  setTimeout(() => {
+    triggerAiChatTick().catch(() => {});
+  }, 2500);
 
   return msgId;
+}
+
+/**
+ * Trigger AI Group Chat scheduler turn (/api/ai/tick)
+ * Uses client heartbeat with rate-limit and cooldown protections
+ */
+export async function triggerAiChatTick() {
+  try {
+    const res = await fetch("/api/ai/tick", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "client" })
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    // Non-critical, ignore network hiccups
+    return null;
+  }
 }
 
 /**

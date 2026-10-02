@@ -52,7 +52,8 @@ const API_ROUTES = {
   "/api/ai/challenge": require("./api/ai/challenge.js"),
   "/api/ai/mood": require("./api/ai/mood.js"),
   "/api/ai/settings": require("./api/ai/settings.js"),
-  "/api/ai/tick": require("./api/ai/tick.js")
+  "/api/ai/tick": require("./api/ai/tick.js"),
+  "/api/config": require("./api/config.js")
 };
 
 const server = http.createServer(async (req, res) => {

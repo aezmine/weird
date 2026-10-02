@@ -1,12 +1,17 @@
 // Firestore REST API Client for Serverless & Dev Environments
 // Direct HTTP/REST client using Firebase Project configuration without heavy SDK overhead
 
-const FIREBASE_CONFIG = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyApsxiawCVgyo5f4osZvZ1-k4Ah2iigE8U",
-  projectId: process.env.FIREBASE_PROJECT_ID || "stupids-13d9b"
-};
+function getFirebaseConfig() {
+  return {
+    apiKey: process.env.FIREBASE_API_KEY || "",
+    projectId: process.env.FIREBASE_PROJECT_ID || ""
+  };
+}
 
-const BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents`;
+function getBaseUrl() {
+  const { projectId } = getFirebaseConfig();
+  return `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+}
 
 /**
  * Converts JS value to Firestore REST Field format
@@ -110,7 +115,8 @@ function fromFirestoreDoc(doc) {
  * Get single document by collection and ID
  */
 async function getDocument(collectionName, docId) {
-  const url = `${BASE_URL}/${collectionName}/${encodeURIComponent(docId)}?key=${FIREBASE_CONFIG.apiKey}`;
+  const { apiKey } = getFirebaseConfig();
+  const url = `${getBaseUrl()}/${collectionName}/${encodeURIComponent(docId)}?key=${apiKey}`;
   const res = await fetch(url);
   if (res.status === 404) return null;
   if (!res.ok) {
@@ -130,10 +136,13 @@ async function setDocument(collectionName, docId, data, merge = false) {
     updatedAt: new Date().toISOString()
   });
 
+  const { apiKey } = getFirebaseConfig();
+  const baseUrl = getBaseUrl();
+
   if (merge) {
     // Use patch with updateMask
     const fieldMasks = Object.keys(data).map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&");
-    const url = `${BASE_URL}/${collectionName}/${encodeURIComponent(docId)}?key=${FIREBASE_CONFIG.apiKey}${fieldMasks ? `&${fieldMasks}` : ""}`;
+    const url = `${baseUrl}/${collectionName}/${encodeURIComponent(docId)}?key=${apiKey}${fieldMasks ? `&${fieldMasks}` : ""}`;
     const res = await fetch(url, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -147,7 +156,7 @@ async function setDocument(collectionName, docId, data, merge = false) {
     return fromFirestoreDoc(resData);
   } else {
     // Direct create or overwrite
-    const url = `${BASE_URL}/${collectionName}/${encodeURIComponent(docId)}?key=${FIREBASE_CONFIG.apiKey}`;
+    const url = `${baseUrl}/${collectionName}/${encodeURIComponent(docId)}?key=${apiKey}`;
     const res = await fetch(url, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -172,7 +181,8 @@ async function addDocument(collectionName, data) {
     updatedAt: new Date().toISOString()
   });
 
-  const url = `${BASE_URL}/${collectionName}?key=${FIREBASE_CONFIG.apiKey}`;
+  const { apiKey } = getFirebaseConfig();
+  const url = `${getBaseUrl()}/${collectionName}?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -195,10 +205,11 @@ async function updateDocument(collectionName, docId, updates) {
   const keys = Object.keys(updates);
   if (keys.length === 0) return null;
 
+  const { apiKey } = getFirebaseConfig();
   const maskQuery = keys.map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&");
   const fields = toFirestoreFields(updates);
 
-  const url = `${BASE_URL}/${collectionName}/${encodeURIComponent(docId)}?key=${FIREBASE_CONFIG.apiKey}&${maskQuery}`;
+  const url = `${getBaseUrl()}/${collectionName}/${encodeURIComponent(docId)}?key=${apiKey}&${maskQuery}`;
   const res = await fetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -218,7 +229,8 @@ async function updateDocument(collectionName, docId, updates) {
  * Delete a document
  */
 async function deleteDocument(collectionName, docId) {
-  const url = `${BASE_URL}/${collectionName}/${encodeURIComponent(docId)}?key=${FIREBASE_CONFIG.apiKey}`;
+  const { apiKey } = getFirebaseConfig();
+  const url = `${getBaseUrl()}/${collectionName}/${encodeURIComponent(docId)}?key=${apiKey}`;
   const res = await fetch(url, { method: "DELETE" });
   return res.ok;
 }
@@ -227,7 +239,8 @@ async function deleteDocument(collectionName, docId) {
  * Query documents in a collection
  */
 async function listDocuments(collectionName, pageSize = 50) {
-  const url = `${BASE_URL}/${collectionName}?pageSize=${pageSize}&key=${FIREBASE_CONFIG.apiKey}`;
+  const { apiKey } = getFirebaseConfig();
+  const url = `${getBaseUrl()}/${collectionName}?pageSize=${pageSize}&key=${apiKey}`;
   const res = await fetch(url);
   if (!res.ok) {
     const err = await res.text();
@@ -241,7 +254,8 @@ async function listDocuments(collectionName, pageSize = 50) {
  * Run structured query on Firestore
  */
 async function queryCollection(collectionName, { whereEqual = [], limit = 30 } = {}) {
-  const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents:runQuery?key=${FIREBASE_CONFIG.apiKey}`;
+  const { apiKey, projectId } = getFirebaseConfig();
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery?key=${apiKey}`;
 
   const filters = whereEqual.map(([field, value]) => ({
     fieldFilter: {
